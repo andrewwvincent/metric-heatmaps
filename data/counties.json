@@ -1,0 +1,86 @@
+[
+  {
+    "name": "Maricopa County",
+    "stateCode": "04",
+    "countyCode": "013",
+    "filename": "AZ - Maricopa County - Unified Scores.json",
+    "geojsonFile": "04-013.geojson"
+  },
+  {
+    "name": "Alameda County",
+    "stateCode": "06",
+    "countyCode": "001",
+    "filename": "CA - Alameda County - Unified Scores.json",
+    "geojsonFile": "06-001.geojson"
+  },
+  {
+    "name": "Los Angeles County",
+    "stateCode": "06",
+    "countyCode": "037",
+    "filename": "CA - Los Angeles County - Unified Scores.json",
+    "geojsonFile": "06-037.geojson"
+  },
+  {
+    "name": "Orange County",
+    "stateCode": "06",
+    "countyCode": "059",
+    "filename": "CA - Orange County - Unified Scores.json",
+    "geojsonFile": "06-059.geojson"
+  },
+  {
+    "name": "San Diego County",
+    "stateCode": "06",
+    "countyCode": "073",
+    "filename": "CA - San Diego County - Unified Scores.json",
+    "geojsonFile": "06-073.geojson"
+  },
+  {
+    "name": "Santa Clara County",
+    "stateCode": "06",
+    "countyCode": "085",
+    "filename": "CA - Santa Clara County - Unified Scores.json",
+    "geojsonFile": "06-085.geojson"
+  },
+  {
+    "name": "Cook County",
+    "stateCode": "17",
+    "countyCode": "031",
+    "filename": "IL - Cook County - Unified Scores.json",
+    "geojsonFile": "17-031.geojson"
+  },
+  {
+    "name": "Middlesex County",
+    "stateCode": "25",
+    "countyCode": "017",
+    "filename": "MA - Middlesex County - Unified Scores.json",
+    "geojsonFile": "25-017.geojson"
+  },
+  {
+    "name": "Suffolk County",
+    "stateCode": "25",
+    "countyCode": "025",
+    "filename": "MA - Suffolk County - Unified Scores.json",
+    "geojsonFile": "25-025.geojson"
+  },
+  {
+    "name": "Nassau County",
+    "stateCode": "36",
+    "countyCode": "059",
+    "filename": "NY - Nassau County - Unified Scores.json",
+    "geojsonFile": "36-059.geojson"
+  },
+  {
+    "name": "Harris County",
+    "stateCode": "48",
+    "countyCode": "201",
+    "filename": "TX - Harris County - Unified Scores.json",
+    "geojsonFile": "48-201.geojson"
+  },
+  {
+    "name": "King County",
+    "stateCode": "53",
+    "countyCode": "033",
+    "filename": "WA - King County - Unified Scores.json",
+    "geojsonFile": "53-033.geojson"
+  }
+]

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Score Visualizer</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        #sidebar {
+            width: 350px;
+            background-color: #f8f9fa;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+        }
+
+        #map {
+            flex: 1;
+            height: 100vh;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            color: #555;
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .control-group:last-child {
+            border-bottom: none;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #666;
+        }
+
+        select, input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        select:disabled {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+
+        .toggle-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 4px;
+            background-color: white;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .toggle-btn:hover {
+            background-color: #f8f9fa;
+        }
+
+        .toggle-btn.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .radio-option {
+            padding: 10px;
+            border: 2px solid #dee2e6;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .radio-option:hover {
+            background-color: #f8f9fa;
+        }
+
+        .radio-option.selected {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .radio-option input[type="radio"] {
+            margin-right: 8px;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        button:hover:not(:disabled) {
+            background-color: #218838;
+        }
+
+        button:disabled {
+            background-color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .legend {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .legend h2 {
+            margin-top: 0;
+            font-size: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 20px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 2px;
+        }
+
+        .data-status {
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-size: 14px;
+            display: none;
+        }
+
+        .slider-container {
+            margin-top: 10px;
+        }
+
+        .slider-container input[type="range"] {
+            width: 100%;
+            margin-top: 5px;
+        }
+
+        .slider-value {
+            display: inline-block;
+            margin-left: 10px;
+            font-weight: 500;
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h1>Score Visualizer</h1>
+
+        <div class="data-status" id="data-status"></div>
+
+        <!-- 1. Select County -->
+        <div class="control-group">
+            <h2>1. Select County</h2>
+            <label for="state-select">State:</label>
+            <select id="state-select">
+                <option value="">-- Select State --</option>
+            </select>
+
+            <label for="county-select" style="margin-top: 10px;">County:</label>
+            <select id="county-select" disabled>
+                <option value="">-- Select County --</option>
+            </select>
+        </div>
+
+        <!-- 2. Absolute Filter -->
+        <div class="control-group">
+            <h2>2. Absolute Filter</h2>
+            <p style="font-size: 13px; color: #666; margin-bottom: 10px;">
+                Filter to only block groups with ES ≥ 2500 AND WS ≥ 2500
+            </p>
+            <div class="toggle-group">
+                <button class="toggle-btn active" id="filter-off">Off</button>
+                <button class="toggle-btn" id="filter-on">On</button>
+            </div>
+        </div>
+
+        <!-- 3. Select Visualization -->
+        <div class="control-group">
+            <h2>3. Select Visualization</h2>
+            <div class="radio-group">
+                <div class="radio-option selected" data-layer="absolute">
+                    <input type="radio" name="visualization" value="absolute" checked>
+                    <span>Absolute Check (ES ≥ 2500 & WS ≥ 2500)</span>
+                </div>
+                <div class="radio-option" data-layer="es">
+                    <input type="radio" name="visualization" value="es">
+                    <span>Enrollment Score Quartiles</span>
+                </div>
+                <div class="radio-option" data-layer="ws">
+                    <input type="radio" name="visualization" value="ws">
+                    <span>Wealth Score Quartiles</span>
+                </div>
+                <div class="radio-option" data-layer="combo">
+                    <input type="radio" name="visualization" value="combo">
+                    <span>Combined ES + WS Quartiles</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. Enrollment Type -->
+        <div class="control-group">
+            <h2>4. Enrollment Type</h2>
+            <div class="toggle-group">
+                <button class="toggle-btn active" id="toggle-private">Private Only</button>
+                <button class="toggle-btn" id="toggle-public">Private + Public</button>
+            </div>
+        </div>
+
+        <!-- 5. Display Options -->
+        <div class="control-group">
+            <h2>5. Display Options</h2>
+            <div class="toggle-group" style="margin-bottom: 15px;">
+                <button class="toggle-btn active" id="boundaries-on">Boundaries On</button>
+                <button class="toggle-btn" id="boundaries-off">Boundaries Off</button>
+            </div>
+            <div class="slider-container">
+                <label for="opacity-slider">Fill Opacity: <span class="slider-value" id="opacity-value">60%</span></label>
+                <input type="range" id="opacity-slider" min="0" max="100" value="60">
+            </div>
+        </div>
+
+        <div class="legend" id="legend">
+            <h2>Legend</h2>
+            <div id="legend-content"></div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
