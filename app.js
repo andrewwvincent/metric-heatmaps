@@ -54,7 +54,6 @@ async function loadAvailableCounties() {
     } catch (error) {
         console.error('Error loading available counties:', error);
         alert('Error loading counties.json. Make sure the file exists in data folder.');
-        alert('Error loading counties.json. Make sure the file exists in Maps - Unified folder.');
     }
 }
 
@@ -90,6 +89,7 @@ function populateCountyDropdown(stateCode) {
         option.value = county.countyCode;
         option.textContent = `${county.name} (${county.countyCode})`;
         option.dataset.filename = county.filename;
+        option.dataset.geojsonFile = county.geojsonFile;
         countySelect.appendChild(option);
     });
 }
@@ -179,7 +179,11 @@ async function loadMapData(stateCode, countyCode) {
     
     try {
         // Load county-specific GeoJSON
+        console.log(`Fetching GeoJSON: data/${county.geojsonFile}`);
         const response = await fetch(`data/${county.geojsonFile}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const countyGeoJSON = await response.json();
         
         console.log(`Loaded GeoJSON for ${county.name}: ${countyGeoJSON.features.length} block groups`);
@@ -269,6 +273,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             const response = await fetch(`data/${filename}`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const data = await response.json();
             
             // Convert array format to object format (keep pre-computed colors!)
