@@ -77,6 +77,13 @@
     "geojsonFile": "48-201.geojson"
   },
   {
+    "name": "Tarrant County",
+    "stateCode": "48",
+    "countyCode": "439",
+    "filename": "TX - Tarrant County - Unified Scores.json",
+    "geojsonFile": "48-439.geojson"
+  },
+  {
     "name": "King County",
     "stateCode": "53",
     "countyCode": "033",
