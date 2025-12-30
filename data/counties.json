@@ -3,91 +3,144 @@
     "name": "Maricopa County",
     "stateCode": "04",
     "countyCode": "013",
-    "filename": "AZ - Maricopa County - Unified Scores.json",
-    "geojsonFile": "04-013.geojson"
+    "filename": "Metrics/AZ - Maricopa County - Unified Scores.json",
+    "geojsonFile": "Geometry/04-013.geojson",
+    "boundaryFile": "Geometry/04-013-boundary.geojson"
   },
   {
     "name": "Alameda County",
     "stateCode": "06",
     "countyCode": "001",
-    "filename": "CA - Alameda County - Unified Scores.json",
-    "geojsonFile": "06-001.geojson"
+    "filename": "Metrics/CA - Alameda County - Unified Scores.json",
+    "geojsonFile": "Geometry/06-001.geojson",
+    "boundaryFile": "Geometry/06-001-boundary.geojson"
+  },
+  {
+    "name": "Contra Costa County",
+    "stateCode": "06",
+    "countyCode": "013",
+    "filename": "Metrics/CA - Contra Costa County - Unified Scores.json",
+    "geojsonFile": "Geometry/06-013.geojson",
+    "boundaryFile": "Geometry/06-013-boundary.geojson"
   },
   {
     "name": "Los Angeles County",
     "stateCode": "06",
     "countyCode": "037",
-    "filename": "CA - Los Angeles County - Unified Scores.json",
-    "geojsonFile": "06-037.geojson"
+    "filename": "Metrics/CA - Los Angeles County - Unified Scores.json",
+    "geojsonFile": "Geometry/06-037.geojson",
+    "boundaryFile": "Geometry/06-037-boundary.geojson"
   },
   {
     "name": "Orange County",
     "stateCode": "06",
     "countyCode": "059",
-    "filename": "CA - Orange County - Unified Scores.json",
-    "geojsonFile": "06-059.geojson"
+    "filename": "Metrics/CA - Orange County - Unified Scores.json",
+    "geojsonFile": "Geometry/06-059.geojson",
+    "boundaryFile": "Geometry/06-059-boundary.geojson"
   },
   {
     "name": "San Diego County",
     "stateCode": "06",
     "countyCode": "073",
-    "filename": "CA - San Diego County - Unified Scores.json",
-    "geojsonFile": "06-073.geojson"
+    "filename": "Metrics/CA - San Diego County - Unified Scores.json",
+    "geojsonFile": "Geometry/06-073.geojson",
+    "boundaryFile": "Geometry/06-073-boundary.geojson"
+  },
+  {
+    "name": "San Mateo County",
+    "stateCode": "06",
+    "countyCode": "081",
+    "filename": "Metrics/CA - San Mateo County - Unified Scores.json",
+    "geojsonFile": "Geometry/06-081.geojson",
+    "boundaryFile": "Geometry/06-081-boundary.geojson"
   },
   {
     "name": "Santa Clara County",
     "stateCode": "06",
     "countyCode": "085",
-    "filename": "CA - Santa Clara County - Unified Scores.json",
-    "geojsonFile": "06-085.geojson"
+    "filename": "Metrics/CA - Santa Clara County - Unified Scores.json",
+    "geojsonFile": "Geometry/06-085.geojson",
+    "boundaryFile": "Geometry/06-085-boundary.geojson"
   },
   {
     "name": "Cook County",
     "stateCode": "17",
     "countyCode": "031",
-    "filename": "IL - Cook County - Unified Scores.json",
-    "geojsonFile": "17-031.geojson"
+    "filename": "Metrics/IL - Cook County - Unified Scores.json",
+    "geojsonFile": "Geometry/17-031.geojson",
+    "boundaryFile": "Geometry/17-031-boundary.geojson"
+  },
+  {
+    "name": "Montgomery County",
+    "stateCode": "24",
+    "countyCode": "031",
+    "filename": "Metrics/MD - Montgomery County - Unified Scores.json",
+    "geojsonFile": "Geometry/24-031.geojson",
+    "boundaryFile": "Geometry/24-031-boundary.geojson"
   },
   {
     "name": "Middlesex County",
     "stateCode": "25",
     "countyCode": "017",
-    "filename": "MA - Middlesex County - Unified Scores.json",
-    "geojsonFile": "25-017.geojson"
+    "filename": "Metrics/MA - Middlesex County - Unified Scores.json",
+    "geojsonFile": "Geometry/25-017.geojson",
+    "boundaryFile": "Geometry/25-017-boundary.geojson"
   },
   {
     "name": "Suffolk County",
     "stateCode": "25",
     "countyCode": "025",
-    "filename": "MA - Suffolk County - Unified Scores.json",
-    "geojsonFile": "25-025.geojson"
+    "filename": "Metrics/MA - Suffolk County - Unified Scores.json",
+    "geojsonFile": "Geometry/25-025.geojson",
+    "boundaryFile": "Geometry/25-025-boundary.geojson"
   },
   {
     "name": "Nassau County",
     "stateCode": "36",
     "countyCode": "059",
-    "filename": "NY - Nassau County - Unified Scores.json",
-    "geojsonFile": "36-059.geojson"
+    "filename": "Metrics/NY - Nassau County - Unified Scores.json",
+    "geojsonFile": "Geometry/36-059.geojson",
+    "boundaryFile": "Geometry/36-059-boundary.geojson"
+  },
+  {
+    "name": "Westchester County",
+    "stateCode": "36",
+    "countyCode": "119",
+    "filename": "Metrics/NY - Westchester County - Unified Scores.json",
+    "geojsonFile": "Geometry/36-119.geojson",
+    "boundaryFile": "Geometry/36-119-boundary.geojson"
+  },
+  {
+    "name": "Collin County",
+    "stateCode": "48",
+    "countyCode": "085",
+    "filename": "Metrics/TX - Collin County - Unified Scores.json",
+    "geojsonFile": "Geometry/48-085.geojson",
+    "boundaryFile": "Geometry/48-085-boundary.geojson"
   },
   {
     "name": "Harris County",
     "stateCode": "48",
     "countyCode": "201",
-    "filename": "TX - Harris County - Unified Scores.json",
-    "geojsonFile": "48-201.geojson"
+    "filename": "Metrics/TX - Harris County - Unified Scores.json",
+    "geojsonFile": "Geometry/48-201.geojson",
+    "boundaryFile": "Geometry/48-201-boundary.geojson"
   },
   {
     "name": "Tarrant County",
     "stateCode": "48",
     "countyCode": "439",
-    "filename": "TX - Tarrant County - Unified Scores.json",
-    "geojsonFile": "48-439.geojson"
+    "filename": "Metrics/TX - Tarrant County - Unified Scores.json",
+    "geojsonFile": "Geometry/48-439.geojson",
+    "boundaryFile": "Geometry/48-439-boundary.geojson"
   },
   {
     "name": "King County",
     "stateCode": "53",
     "countyCode": "033",
-    "filename": "WA - King County - Unified Scores.json",
-    "geojsonFile": "53-033.geojson"
+    "filename": "Metrics/WA - King County - Unified Scores.json",
+    "geojsonFile": "Geometry/53-033.geojson",
+    "boundaryFile": "Geometry/53-033-boundary.geojson"
   }
 ]

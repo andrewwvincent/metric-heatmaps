@@ -196,13 +196,15 @@
         <h1>Score Visualizer</h1>
         
         <div class="section">
-            <h2>1. Select County</h2>
+            <h2>1. Select Location</h2>
             <label for="state-select">State:</label>
             <select id="state-select">
                 <option value="">Select State...</option>
             </select>
             
-            <label for="county-select">County:</label>
+            <button id="load-all-counties-btn" class="toggle-btn" style="width: 100%; margin-top: 10px; display: none;">Load All Counties in State</button>
+            
+            <label for="county-select" style="margin-top: 15px;">County (or load all above):</label>
             <select id="county-select" disabled>
                 <option value="">Select County...</option>
             </select>
@@ -268,6 +270,7 @@
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>
