@@ -122,6 +122,10 @@ function getFeatureStyle(feature) {
     
     if (currentVisualization === 'absolute') {
         fillColor = isPrivate ? data.colors.absolute : data.colors.absolutePlus;
+    } else if (currentVisualization === 'esAbsolute') {
+        fillColor = isPrivate ? data.colors.esAbsolute : data.colors.esPlusAbsolute;
+    } else if (currentVisualization === 'wsAbsolute') {
+        fillColor = data.colors.wsAbsolute;
     } else if (currentVisualization === 'es') {
         if (isFiltered) {
             fillColor = isPrivate ? data.colors.esFiltered : data.colors.esPlusFiltered;
@@ -371,6 +375,25 @@ function updateLegend() {
             <div class="legend-item">
                 <div class="legend-color" style="background-color: #9ca3af;"></div>
                 <div class="legend-label">Does not meet criteria</div>
+            </div>
+        `;
+    } else if (currentVisualization === 'esAbsolute' || currentVisualization === 'wsAbsolute') {
+        legendContent.innerHTML = `
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ef4444;"></div>
+                <div class="legend-label">Red - 3750+</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #f97316;"></div>
+                <div class="legend-label">Orange - 2501-3750</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #eab308;"></div>
+                <div class="legend-label">Yellow - 1251-2500</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #3b82f6;"></div>
+                <div class="legend-label">Blue - 0-1250</div>
             </div>
         `;
     } else {
