@@ -177,8 +177,21 @@ function loadFromURL() {
     if (mode) {
         enrollmentMode = mode;
         // Update UI
-        document.getElementById('enrollment-private').checked = (mode === 'private');
-        document.getElementById('enrollment-public').checked = (mode === 'public');
+        const privateBtn = document.getElementById('enrollment-private');
+        const publicBtn = document.getElementById('enrollment-public');
+        if (privateBtn) privateBtn.checked = (mode === 'private');
+        if (publicBtn) publicBtn.checked = (mode === 'public');
+        
+        // Update toggle buttons
+        const privateToggle = document.getElementById('toggle-private');
+        const publicToggle = document.getElementById('toggle-public');
+        if (mode === 'private') {
+            if (privateToggle) privateToggle.classList.add('active');
+            if (publicToggle) publicToggle.classList.remove('active');
+        } else {
+            if (publicToggle) publicToggle.classList.add('active');
+            if (privateToggle) privateToggle.classList.remove('active');
+        }
     }
     
     const filter = params.get('filter');
@@ -186,6 +199,17 @@ function loadFromURL() {
         absoluteFilterEnabled = (filter === '1');
         const filterCheckbox = document.getElementById('absolute-filter');
         if (filterCheckbox) filterCheckbox.checked = absoluteFilterEnabled;
+        
+        // Update toggle buttons
+        const filterOnBtn = document.getElementById('toggle-filter-on');
+        const filterOffBtn = document.getElementById('toggle-filter-off');
+        if (absoluteFilterEnabled) {
+            if (filterOnBtn) filterOnBtn.classList.add('active');
+            if (filterOffBtn) filterOffBtn.classList.remove('active');
+        } else {
+            if (filterOffBtn) filterOffBtn.classList.add('active');
+            if (filterOnBtn) filterOnBtn.classList.remove('active');
+        }
     }
     
     const borders = params.get('borders');
@@ -867,6 +891,51 @@ function updatePinCount() {
     }
 }
 
+// Auto-load score data when county is selected
+async function loadScoreDataForCounty(stateCode, countyCode) {
+    const countySelect = document.getElementById('county-select');
+    const selectedOption = countySelect.options[countySelect.selectedIndex];
+    const filename = selectedOption.dataset.filename;
+    
+    if (!filename) {
+        console.error('No filename found for selected county');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`data/${filename}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        // Convert array format to object format (keep pre-computed colors!)
+        scoreData = {};
+        data.forEach(item => {
+            scoreData[item.geoid] = {
+                enrollmentScore: item.enrollmentScore,
+                enrollmentScorePlus: item.enrollmentScorePlus,
+                wealthScore: item.wealthScore,
+                colors: item.colors
+            };
+        });
+        
+        const status = document.getElementById('data-status');
+        status.style.display = 'block';
+        status.textContent = `✓ Loaded ${Object.keys(scoreData).length} block groups`;
+        status.style.backgroundColor = '#dcfce7';
+        status.style.color = '#166534';
+        
+        console.log('Score data loaded:', Object.keys(scoreData).length, 'entries');
+        
+        // Load the map
+        loadMapData(stateCode, countyCode);
+    } catch (error) {
+        console.error('Error loading score data:', error);
+        alert('Error loading score data: ' + error.message);
+    }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     initMap();
@@ -878,56 +947,6 @@ document.addEventListener('DOMContentLoaded', () => {
             updateURL();
         }
     });
-    
-    // Load state from URL if present
-    setTimeout(() => {
-        loadFromURL();
-    }, 100);
-    
-    // Auto-load score data when county is selected
-    async function loadScoreDataForCounty(stateCode, countyCode) {
-        const countySelect = document.getElementById('county-select');
-        const selectedOption = countySelect.options[countySelect.selectedIndex];
-        const filename = selectedOption.dataset.filename;
-        
-        if (!filename) {
-            console.error('No filename found for selected county');
-            return;
-        }
-        
-        try {
-            const response = await fetch(`data/${filename}`);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            const data = await response.json();
-            
-            // Convert array format to object format (keep pre-computed colors!)
-            scoreData = {};
-            data.forEach(item => {
-                scoreData[item.geoid] = {
-                    enrollmentScore: item.enrollmentScore,
-                    enrollmentScorePlus: item.enrollmentScorePlus,
-                    wealthScore: item.wealthScore,
-                    colors: item.colors
-                };
-            });
-            
-            const status = document.getElementById('data-status');
-            status.style.display = 'block';
-            status.textContent = `✓ Loaded ${Object.keys(scoreData).length} block groups`;
-            status.style.backgroundColor = '#dcfce7';
-            status.style.color = '#166534';
-            
-            console.log('Score data loaded:', Object.keys(scoreData).length, 'entries');
-            
-            // Load the map
-            loadMapData(stateCode, countyCode);
-        } catch (error) {
-            console.error('Error loading score data:', error);
-            alert('Error loading score data: ' + error.message);
-        }
-    }
     
     // Enrollment mode toggle
     document.getElementById('toggle-private').addEventListener('click', () => {
@@ -1096,4 +1115,9 @@ document.addEventListener('DOMContentLoaded', () => {
             loadScoreDataForCounty(stateCode, countyCode);
         }
     });
+    
+    // Load state from URL if present - call after all DOM elements and event listeners are ready
+    setTimeout(() => {
+        loadFromURL();
+    }, 300);
 });
