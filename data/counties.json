@@ -40,12 +40,28 @@
     "boundaryFile": "Geometry/06-059-boundary.geojson"
   },
   {
+    "name": "Riverside County",
+    "stateCode": "06",
+    "countyCode": "065",
+    "filename": "Metrics/CA - Riverside County - Unified Scores.json",
+    "geojsonFile": "Geometry/06-065.geojson",
+    "boundaryFile": "Geometry/06-065-boundary.geojson"
+  },
+  {
     "name": "San Diego County",
     "stateCode": "06",
     "countyCode": "073",
     "filename": "Metrics/CA - San Diego County - Unified Scores.json",
     "geojsonFile": "Geometry/06-073.geojson",
     "boundaryFile": "Geometry/06-073-boundary.geojson"
+  },
+  {
+    "name": "San Francisco County",
+    "stateCode": "06",
+    "countyCode": "075",
+    "filename": "Metrics/CA - San Francisco County - Unified Scores.json",
+    "geojsonFile": "Geometry/06-075.geojson",
+    "boundaryFile": "Geometry/06-075-boundary.geojson"
   },
   {
     "name": "San Mateo County",
@@ -64,12 +80,180 @@
     "boundaryFile": "Geometry/06-085-boundary.geojson"
   },
   {
+    "name": "Ventura County",
+    "stateCode": "06",
+    "countyCode": "111",
+    "filename": "Metrics/CA - Ventura County - Unified Scores.json",
+    "geojsonFile": "Geometry/06-111.geojson",
+    "boundaryFile": "Geometry/06-111-boundary.geojson"
+  },
+  {
+    "name": "Adams County",
+    "stateCode": "08",
+    "countyCode": "001",
+    "filename": "Metrics/CO - Adams County - Unified Scores.json",
+    "geojsonFile": "Geometry/08-001.geojson",
+    "boundaryFile": "Geometry/08-001-boundary.geojson"
+  },
+  {
+    "name": "Arapahoe County",
+    "stateCode": "08",
+    "countyCode": "005",
+    "filename": "Metrics/CO - Arapahoe County - Unified Scores.json",
+    "geojsonFile": "Geometry/08-005.geojson",
+    "boundaryFile": "Geometry/08-005-boundary.geojson"
+  },
+  {
+    "name": "Boulder County",
+    "stateCode": "08",
+    "countyCode": "013",
+    "filename": "Metrics/CO - Boulder County - Unified Scores.json",
+    "geojsonFile": "Geometry/08-013.geojson",
+    "boundaryFile": "Geometry/08-013-boundary.geojson"
+  },
+  {
+    "name": "Broomfield County",
+    "stateCode": "08",
+    "countyCode": "014",
+    "filename": "Metrics/CO - Broomfield County - Unified Scores.json",
+    "geojsonFile": "Geometry/08-014.geojson",
+    "boundaryFile": "Geometry/08-014-boundary.geojson"
+  },
+  {
+    "name": "Clear Creek County",
+    "stateCode": "08",
+    "countyCode": "019",
+    "filename": "Metrics/CO - Clear Creek County - Unified Scores.json",
+    "geojsonFile": "Geometry/08-019.geojson",
+    "boundaryFile": "Geometry/08-019-boundary.geojson"
+  },
+  {
+    "name": "Denver County",
+    "stateCode": "08",
+    "countyCode": "031",
+    "filename": "Metrics/CO - Denver County - Unified Scores.json",
+    "geojsonFile": "Geometry/08-031.geojson",
+    "boundaryFile": "Geometry/08-031-boundary.geojson"
+  },
+  {
+    "name": "Douglas County",
+    "stateCode": "08",
+    "countyCode": "035",
+    "filename": "Metrics/CO - Douglas County - Unified Scores.json",
+    "geojsonFile": "Geometry/08-035.geojson",
+    "boundaryFile": "Geometry/08-035-boundary.geojson"
+  },
+  {
+    "name": "Gilpin County",
+    "stateCode": "08",
+    "countyCode": "047",
+    "filename": "Metrics/CO - Gilpin County - Unified Scores.json",
+    "geojsonFile": "Geometry/08-047.geojson",
+    "boundaryFile": "Geometry/08-047-boundary.geojson"
+  },
+  {
+    "name": "Jefferson Count",
+    "stateCode": "08",
+    "countyCode": "059",
+    "filename": "Metrics/CO - Jefferson Count - Unified Scores.json",
+    "geojsonFile": "Geometry/08-059.geojson",
+    "boundaryFile": "Geometry/08-059-boundary.geojson"
+  },
+  {
+    "name": "Weld County",
+    "stateCode": "08",
+    "countyCode": "123",
+    "filename": "Metrics/CO - Weld County - Unified Scores.json",
+    "geojsonFile": "Geometry/08-123.geojson",
+    "boundaryFile": "Geometry/08-123-boundary.geojson"
+  },
+  {
+    "name": "Fairfield County",
+    "stateCode": "09",
+    "countyCode": "190",
+    "filename": "Metrics/CT - Fairfield County - Unified Scores.json",
+    "geojsonFile": "Geometry/09-190.geojson",
+    "boundaryFile": "Geometry/09-190-boundary.geojson"
+  },
+  {
+    "name": "Broward County",
+    "stateCode": "12",
+    "countyCode": "011",
+    "filename": "Metrics/FL - Broward County - Unified Scores.json",
+    "geojsonFile": "Geometry/12-011.geojson",
+    "boundaryFile": "Geometry/12-011-boundary.geojson"
+  },
+  {
+    "name": "Miami-Dade County",
+    "stateCode": "12",
+    "countyCode": "086",
+    "filename": "Metrics/FL - Miami-Dade County - Unified Scores.json",
+    "geojsonFile": "Geometry/12-086.geojson",
+    "boundaryFile": "Geometry/12-086-boundary.geojson"
+  },
+  {
+    "name": "Palm Beach County",
+    "stateCode": "12",
+    "countyCode": "099",
+    "filename": "Metrics/FL - Palm Beach County - Unified Scores.json",
+    "geojsonFile": "Geometry/12-099.geojson",
+    "boundaryFile": "Geometry/12-099-boundary.geojson"
+  },
+  {
+    "name": "Cobb County",
+    "stateCode": "13",
+    "countyCode": "067",
+    "filename": "Metrics/GA - Cobb County - Unified Scores.json",
+    "geojsonFile": "Geometry/13-067.geojson",
+    "boundaryFile": "Geometry/13-067-boundary.geojson"
+  },
+  {
+    "name": "Fulton County",
+    "stateCode": "13",
+    "countyCode": "121",
+    "filename": "Metrics/GA - Fulton County - Unified Scores.json",
+    "geojsonFile": "Geometry/13-121.geojson",
+    "boundaryFile": "Geometry/13-121-boundary.geojson"
+  },
+  {
+    "name": "Gwinnett County",
+    "stateCode": "13",
+    "countyCode": "135",
+    "filename": "Metrics/GA - Gwinnett County - Unified Scores.json",
+    "geojsonFile": "Geometry/13-135.geojson",
+    "boundaryFile": "Geometry/13-135-boundary.geojson"
+  },
+  {
     "name": "Cook County",
     "stateCode": "17",
     "countyCode": "031",
     "filename": "Metrics/IL - Cook County - Unified Scores.json",
     "geojsonFile": "Geometry/17-031.geojson",
     "boundaryFile": "Geometry/17-031-boundary.geojson"
+  },
+  {
+    "name": "DuPage County",
+    "stateCode": "17",
+    "countyCode": "043",
+    "filename": "Metrics/IL - DuPage County - Unified Scores.json",
+    "geojsonFile": "Geometry/17-043.geojson",
+    "boundaryFile": "Geometry/17-043-boundary.geojson"
+  },
+  {
+    "name": "Kane County",
+    "stateCode": "17",
+    "countyCode": "089",
+    "filename": "Metrics/IL - Kane County - Unified Scores.json",
+    "geojsonFile": "Geometry/17-089.geojson",
+    "boundaryFile": "Geometry/17-089-boundary.geojson"
+  },
+  {
+    "name": "Lake County",
+    "stateCode": "17",
+    "countyCode": "097",
+    "filename": "Metrics/IL - Lake County - Unified Scores.json",
+    "geojsonFile": "Geometry/17-097.geojson",
+    "boundaryFile": "Geometry/17-097-boundary.geojson"
   },
   {
     "name": "Montgomery County",
@@ -80,12 +264,28 @@
     "boundaryFile": "Geometry/24-031-boundary.geojson"
   },
   {
+    "name": "Essex County",
+    "stateCode": "25",
+    "countyCode": "009",
+    "filename": "Metrics/MA - Essex County - Unified Scores.json",
+    "geojsonFile": "Geometry/25-009.geojson",
+    "boundaryFile": "Geometry/25-009-boundary.geojson"
+  },
+  {
     "name": "Middlesex County",
     "stateCode": "25",
     "countyCode": "017",
     "filename": "Metrics/MA - Middlesex County - Unified Scores.json",
     "geojsonFile": "Geometry/25-017.geojson",
     "boundaryFile": "Geometry/25-017-boundary.geojson"
+  },
+  {
+    "name": "Norfolk County",
+    "stateCode": "25",
+    "countyCode": "021",
+    "filename": "Metrics/MA - Norfolk County - Unified Scores.json",
+    "geojsonFile": "Geometry/25-021.geojson",
+    "boundaryFile": "Geometry/25-021-boundary.geojson"
   },
   {
     "name": "Suffolk County",
@@ -96,12 +296,132 @@
     "boundaryFile": "Geometry/25-025-boundary.geojson"
   },
   {
+    "name": "Oakland County",
+    "stateCode": "26",
+    "countyCode": "125",
+    "filename": "Metrics/MI - Oakland County - Unified Scores.json",
+    "geojsonFile": "Geometry/26-125.geojson",
+    "boundaryFile": "Geometry/26-125-boundary.geojson"
+  },
+  {
+    "name": "Hennepin County",
+    "stateCode": "27",
+    "countyCode": "053",
+    "filename": "Metrics/MN - Hennepin County - Unified Scores.json",
+    "geojsonFile": "Geometry/27-053.geojson",
+    "boundaryFile": "Geometry/27-053-boundary.geojson"
+  },
+  {
+    "name": "Gallatin County",
+    "stateCode": "30",
+    "countyCode": "031",
+    "filename": "Metrics/MT - Gallatin County - Unified Scores.json",
+    "geojsonFile": "Geometry/30-031.geojson",
+    "boundaryFile": "Geometry/30-031-boundary.geojson"
+  },
+  {
+    "name": "Bergen County",
+    "stateCode": "34",
+    "countyCode": "003",
+    "filename": "Metrics/NJ - Bergen County - Unified Scores.json",
+    "geojsonFile": "Geometry/34-003.geojson",
+    "boundaryFile": "Geometry/34-003-boundary.geojson"
+  },
+  {
+    "name": "Essex County",
+    "stateCode": "34",
+    "countyCode": "013",
+    "filename": "Metrics/NJ - Essex County - Unified Scores.json",
+    "geojsonFile": "Geometry/34-013.geojson",
+    "boundaryFile": "Geometry/34-013-boundary.geojson"
+  },
+  {
+    "name": "Middlesex County",
+    "stateCode": "34",
+    "countyCode": "023",
+    "filename": "Metrics/NJ - Middlesex County - Unified Scores.json",
+    "geojsonFile": "Geometry/34-023.geojson",
+    "boundaryFile": "Geometry/34-023-boundary.geojson"
+  },
+  {
+    "name": "Monmouth County",
+    "stateCode": "34",
+    "countyCode": "025",
+    "filename": "Metrics/NJ - Monmouth County - Unified Scores.json",
+    "geojsonFile": "Geometry/34-025.geojson",
+    "boundaryFile": "Geometry/34-025-boundary.geojson"
+  },
+  {
+    "name": "Morris County",
+    "stateCode": "34",
+    "countyCode": "027",
+    "filename": "Metrics/NJ - Morris County - Unified Scores.json",
+    "geojsonFile": "Geometry/34-027.geojson",
+    "boundaryFile": "Geometry/34-027-boundary.geojson"
+  },
+  {
+    "name": "Somerset County",
+    "stateCode": "34",
+    "countyCode": "035",
+    "filename": "Metrics/NJ - Somerset County - Unified Scores.json",
+    "geojsonFile": "Geometry/34-035.geojson",
+    "boundaryFile": "Geometry/34-035-boundary.geojson"
+  },
+  {
+    "name": "Union County",
+    "stateCode": "34",
+    "countyCode": "039",
+    "filename": "Metrics/NJ - Union County - Unified Scores.json",
+    "geojsonFile": "Geometry/34-039.geojson",
+    "boundaryFile": "Geometry/34-039-boundary.geojson"
+  },
+  {
+    "name": "Bronx County",
+    "stateCode": "36",
+    "countyCode": "005",
+    "filename": "Metrics/NY - Bronx County - Unified Scores.json",
+    "geojsonFile": "Geometry/36-005.geojson",
+    "boundaryFile": "Geometry/36-005-boundary.geojson"
+  },
+  {
+    "name": "Kings County",
+    "stateCode": "36",
+    "countyCode": "047",
+    "filename": "Metrics/NY - Kings County - Unified Scores.json",
+    "geojsonFile": "Geometry/36-047.geojson",
+    "boundaryFile": "Geometry/36-047-boundary.geojson"
+  },
+  {
     "name": "Nassau County",
     "stateCode": "36",
     "countyCode": "059",
     "filename": "Metrics/NY - Nassau County - Unified Scores.json",
     "geojsonFile": "Geometry/36-059.geojson",
     "boundaryFile": "Geometry/36-059-boundary.geojson"
+  },
+  {
+    "name": "New York County",
+    "stateCode": "36",
+    "countyCode": "061",
+    "filename": "Metrics/NY - New York County - Unified Scores.json",
+    "geojsonFile": "Geometry/36-061.geojson",
+    "boundaryFile": "Geometry/36-061-boundary.geojson"
+  },
+  {
+    "name": "Queens County",
+    "stateCode": "36",
+    "countyCode": "081",
+    "filename": "Metrics/NY - Queens County - Unified Scores.json",
+    "geojsonFile": "Geometry/36-081.geojson",
+    "boundaryFile": "Geometry/36-081-boundary.geojson"
+  },
+  {
+    "name": "Suffolk County",
+    "stateCode": "36",
+    "countyCode": "103",
+    "filename": "Metrics/NY - Suffolk County - Unified Scores.json",
+    "geojsonFile": "Geometry/36-103.geojson",
+    "boundaryFile": "Geometry/36-103-boundary.geojson"
   },
   {
     "name": "Westchester County",
@@ -112,12 +432,108 @@
     "boundaryFile": "Geometry/36-119-boundary.geojson"
   },
   {
+    "name": "Durham County",
+    "stateCode": "37",
+    "countyCode": "063",
+    "filename": "Metrics/NC - Durham County - Unified Scores.json",
+    "geojsonFile": "Geometry/37-063.geojson",
+    "boundaryFile": "Geometry/37-063-boundary.geojson"
+  },
+  {
+    "name": "Mecklenburg County",
+    "stateCode": "37",
+    "countyCode": "119",
+    "filename": "Metrics/NC - Mecklenburg County - Unified Scores.json",
+    "geojsonFile": "Geometry/37-119.geojson",
+    "boundaryFile": "Geometry/37-119-boundary.geojson"
+  },
+  {
+    "name": "Wake County",
+    "stateCode": "37",
+    "countyCode": "183",
+    "filename": "Metrics/NC - Wake County - Unified Scores.json",
+    "geojsonFile": "Geometry/37-183.geojson",
+    "boundaryFile": "Geometry/37-183-boundary.geojson"
+  },
+  {
+    "name": "Franklin County",
+    "stateCode": "39",
+    "countyCode": "049",
+    "filename": "Metrics/OH - Franklin County - Unified Scores.json",
+    "geojsonFile": "Geometry/39-049.geojson",
+    "boundaryFile": "Geometry/39-049-boundary.geojson"
+  },
+  {
+    "name": "Bucks County",
+    "stateCode": "42",
+    "countyCode": "017",
+    "filename": "Metrics/PA - Bucks County - Unified Scores.json",
+    "geojsonFile": "Geometry/42-017.geojson",
+    "boundaryFile": "Geometry/42-017-boundary.geojson"
+  },
+  {
+    "name": "Chester County",
+    "stateCode": "42",
+    "countyCode": "029",
+    "filename": "Metrics/PA - Chester County - Unified Scores.json",
+    "geojsonFile": "Geometry/42-029.geojson",
+    "boundaryFile": "Geometry/42-029-boundary.geojson"
+  },
+  {
+    "name": "Delaware County",
+    "stateCode": "42",
+    "countyCode": "045",
+    "filename": "Metrics/PA - Delaware County - Unified Scores.json",
+    "geojsonFile": "Geometry/42-045.geojson",
+    "boundaryFile": "Geometry/42-045-boundary.geojson"
+  },
+  {
+    "name": "Montgomery County",
+    "stateCode": "42",
+    "countyCode": "091",
+    "filename": "Metrics/PA - Montgomery County - Unified Scores.json",
+    "geojsonFile": "Geometry/42-091.geojson",
+    "boundaryFile": "Geometry/42-091-boundary.geojson"
+  },
+  {
+    "name": "Davidson County",
+    "stateCode": "47",
+    "countyCode": "037",
+    "filename": "Metrics/TN - Davidson County - Unified Scores.json",
+    "geojsonFile": "Geometry/47-037.geojson",
+    "boundaryFile": "Geometry/47-037-boundary.geojson"
+  },
+  {
     "name": "Collin County",
     "stateCode": "48",
     "countyCode": "085",
     "filename": "Metrics/TX - Collin County - Unified Scores.json",
     "geojsonFile": "Geometry/48-085.geojson",
     "boundaryFile": "Geometry/48-085-boundary.geojson"
+  },
+  {
+    "name": "Dallas County",
+    "stateCode": "48",
+    "countyCode": "113",
+    "filename": "Metrics/TX - Dallas County - Unified Scores.json",
+    "geojsonFile": "Geometry/48-113.geojson",
+    "boundaryFile": "Geometry/48-113-boundary.geojson"
+  },
+  {
+    "name": "Denton County",
+    "stateCode": "48",
+    "countyCode": "121",
+    "filename": "Metrics/TX - Denton County - Unified Scores.json",
+    "geojsonFile": "Geometry/48-121.geojson",
+    "boundaryFile": "Geometry/48-121-boundary.geojson"
+  },
+  {
+    "name": "Fort Bend County",
+    "stateCode": "48",
+    "countyCode": "157",
+    "filename": "Metrics/TX - Fort Bend County - Unified Scores.json",
+    "geojsonFile": "Geometry/48-157.geojson",
+    "boundaryFile": "Geometry/48-157-boundary.geojson"
   },
   {
     "name": "Harris County",
@@ -136,11 +552,91 @@
     "boundaryFile": "Geometry/48-439-boundary.geojson"
   },
   {
+    "name": "Travis County",
+    "stateCode": "48",
+    "countyCode": "453",
+    "filename": "Metrics/TX - Travis County - Unified Scores.json",
+    "geojsonFile": "Geometry/48-453.geojson",
+    "boundaryFile": "Geometry/48-453-boundary.geojson"
+  },
+  {
+    "name": "Williamson County",
+    "stateCode": "48",
+    "countyCode": "491",
+    "filename": "Metrics/TX - Williamson County - Unified Scores.json",
+    "geojsonFile": "Geometry/48-491.geojson",
+    "boundaryFile": "Geometry/48-491-boundary.geojson"
+  },
+  {
+    "name": "Salt Lake County",
+    "stateCode": "49",
+    "countyCode": "035",
+    "filename": "Metrics/UT - Salt Lake County - Unified Scores.json",
+    "geojsonFile": "Geometry/49-035.geojson",
+    "boundaryFile": "Geometry/49-035-boundary.geojson"
+  },
+  {
+    "name": "Summit County",
+    "stateCode": "49",
+    "countyCode": "043",
+    "filename": "Metrics/UT - Summit County - Unified Scores.json",
+    "geojsonFile": "Geometry/49-043.geojson",
+    "boundaryFile": "Geometry/49-043-boundary.geojson"
+  },
+  {
+    "name": "Arlington County",
+    "stateCode": "51",
+    "countyCode": "013",
+    "filename": "Metrics/VA - Arlington County - Unified Scores.json",
+    "geojsonFile": "Geometry/51-013.geojson",
+    "boundaryFile": "Geometry/51-013-boundary.geojson"
+  },
+  {
+    "name": "Fairfax City",
+    "stateCode": "51",
+    "countyCode": "600",
+    "filename": "Metrics/VA - Fairfax City - Unified Scores.json",
+    "geojsonFile": "Geometry/51-600.geojson",
+    "boundaryFile": "Geometry/51-600-boundary.geojson"
+  },
+  {
+    "name": "Fairfax County",
+    "stateCode": "51",
+    "countyCode": "059",
+    "filename": "Metrics/VA - Fairfax County - Unified Scores.json",
+    "geojsonFile": "Geometry/51-059.geojson",
+    "boundaryFile": "Geometry/51-059-boundary.geojson"
+  },
+  {
+    "name": "Fairfax County (only)",
+    "stateCode": "51",
+    "countyCode": "059",
+    "filename": "Metrics/VA - Fairfax County (only) - Unified Scores.json",
+    "geojsonFile": "Geometry/51-059.geojson",
+    "boundaryFile": "Geometry/51-059-boundary.geojson"
+  },
+  {
+    "name": "Loudoun County",
+    "stateCode": "51",
+    "countyCode": "107",
+    "filename": "Metrics/VA - Loudoun County - Unified Scores.json",
+    "geojsonFile": "Geometry/51-107.geojson",
+    "boundaryFile": "Geometry/51-107-boundary.geojson"
+  },
+  {
     "name": "King County",
     "stateCode": "53",
     "countyCode": "033",
     "filename": "Metrics/WA - King County - Unified Scores.json",
     "geojsonFile": "Geometry/53-033.geojson",
     "boundaryFile": "Geometry/53-033-boundary.geojson"
+  },
+  {
+    "name": "Snohomish County",
+    "stateCode": "53",
+    "countyCode": "061",
+    "filename": "Metrics/WA - Snohomish County - Unified Scores.json",
+    "geojsonFile": "Geometry/53-061.geojson",
+    "boundaryFile": "Geometry/53-061-boundary.geojson"
   }
 ]

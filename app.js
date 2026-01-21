@@ -10,6 +10,14 @@ let absoluteFilterEnabled = true; // Filter to ES>=2500 & WS>=2500
 let boundariesVisible = true;
 let fillOpacity = 0.6;
 let isMultiCountyMode = false; // Track if we're showing multiple counties
+let searchMarkers = []; // Array of markers for address searches
+let countyBoundariesVisible = true; // Toggle for county boundaries in multi-county mode
+let customLocationsLayer = null; // Layer for custom location pins
+let customLocationsVisible = false; // Toggle for custom locations
+let customLocationsData = null; // Store custom locations GeoJSON data
+let currentStateCode = null; // Track current state
+let currentCountyCode = null; // Track current county
+let loadedCounties = []; // Track all loaded counties in multi-county mode
 
 const STATE_NAMES = {
     '01': 'Alabama', '02': 'Alaska', '04': 'Arizona', '05': 'Arkansas', '06': 'California',
@@ -27,7 +35,11 @@ const STATE_NAMES = {
 
 // Initialize map
 function initMap() {
-    map = L.map('map').setView([37.7749, -122.4194], 10);
+    map = L.map('map', {
+        zoomSnap: 0.25,  // Allow zoom levels in 0.25 increments
+        zoomDelta: 0.25,  // Zoom in/out by 0.25 levels per click
+        wheelPxPerZoomLevel: 120  // Smoother mouse wheel zooming
+    }).setView([37.7749, -122.4194], 10);
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors',
@@ -35,14 +47,288 @@ function initMap() {
     }).addTo(map);
 }
 
+// Take screenshot with preview
+async function takeScreenshot() {
+    try {
+        const mapElement = document.getElementById('map');
+        
+        // Get exact dimensions
+        const width = mapElement.offsetWidth;
+        const height = mapElement.offsetHeight;
+        
+        // Use dom-to-image to capture the map with all layers (handles SVG/Canvas better)
+        const dataUrl = await domtoimage.toPng(mapElement, {
+            quality: 1.0,
+            bgcolor: '#ffffff',
+            cacheBust: true,
+            width: width,
+            height: height,
+            style: {
+                margin: '0',
+                padding: '0'
+            }
+        });
+        
+        // Show preview modal
+        const modal = document.getElementById('screenshot-modal');
+        const preview = document.getElementById('screenshot-preview');
+        preview.src = dataUrl;
+        modal.classList.add('active');
+        
+        // Store data URL for download
+        window.screenshotDataUrl = dataUrl;
+        
+    } catch (error) {
+        console.error('Error taking screenshot:', error);
+        alert('Error capturing screenshot: ' + error.message);
+    }
+}
+
+// Download screenshot
+function downloadScreenshot() {
+    if (!window.screenshotDataUrl) {
+        return;
+    }
+    
+    // Create download link
+    const link = document.createElement('a');
+    link.download = `map-screenshot-${new Date().getTime()}.png`;
+    link.href = window.screenshotDataUrl;
+    link.click();
+    
+    // Close modal
+    closeScreenshotModal();
+}
+
+// Close screenshot modal
+function closeScreenshotModal() {
+    const modal = document.getElementById('screenshot-modal');
+    modal.classList.remove('active');
+    window.screenshotDataUrl = null;
+}
+
+// URL Query String Functions
+function updateURL() {
+    const params = new URLSearchParams();
+    
+    // Save viewport (center and zoom)
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    params.set('lat', center.lat.toFixed(6));
+    params.set('lng', center.lng.toFixed(6));
+    params.set('zoom', zoom.toFixed(2));
+    
+    // Save visualization settings
+    params.set('viz', currentVisualization);
+    params.set('mode', enrollmentMode);
+    params.set('filter', absoluteFilterEnabled ? '1' : '0');
+    params.set('borders', boundariesVisible ? '1' : '0');
+    params.set('opacity', Math.round(fillOpacity * 100));
+    
+    // Save county boundaries visibility in multi-county mode
+    if (isMultiCountyMode) {
+        params.set('countyBorders', countyBoundariesVisible ? '1' : '0');
+    }
+    
+    // Save loaded counties
+    if (isMultiCountyMode && loadedCounties.length > 0) {
+        // For multi-county mode (all counties in state)
+        params.set('state', currentStateCode);
+        params.set('mode_type', 'all');
+    } else if (currentStateCode && currentCountyCode) {
+        // For single county mode
+        params.set('state', currentStateCode);
+        params.set('county', currentCountyCode);
+    }
+    
+    // Update URL without reloading page
+    const newURL = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState({}, '', newURL);
+}
+
+function loadFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    
+    // Restore viewport if present
+    const lat = params.get('lat');
+    const lng = params.get('lng');
+    const zoom = params.get('zoom');
+    
+    if (lat && lng && zoom) {
+        map.setView([parseFloat(lat), parseFloat(lng)], parseFloat(zoom));
+    }
+    
+    // Restore visualization settings
+    const viz = params.get('viz');
+    if (viz) {
+        currentVisualization = viz;
+        // Update UI
+        document.querySelectorAll('.radio-option').forEach(option => {
+            if (option.dataset.layer === viz) {
+                option.classList.add('selected');
+                option.querySelector('input').checked = true;
+            } else {
+                option.classList.remove('selected');
+            }
+        });
+    }
+    
+    const mode = params.get('mode');
+    if (mode) {
+        enrollmentMode = mode;
+        // Update UI
+        document.getElementById('enrollment-private').checked = (mode === 'private');
+        document.getElementById('enrollment-public').checked = (mode === 'public');
+    }
+    
+    const filter = params.get('filter');
+    if (filter !== null) {
+        absoluteFilterEnabled = (filter === '1');
+        const filterCheckbox = document.getElementById('absolute-filter');
+        if (filterCheckbox) filterCheckbox.checked = absoluteFilterEnabled;
+    }
+    
+    const borders = params.get('borders');
+    if (borders !== null) {
+        boundariesVisible = (borders === '1');
+    }
+    
+    const opacity = params.get('opacity');
+    if (opacity) {
+        fillOpacity = parseInt(opacity) / 100;
+        const opacitySlider = document.getElementById('opacity-slider');
+        const opacityValue = document.getElementById('opacity-value');
+        if (opacitySlider) opacitySlider.value = opacity;
+        if (opacityValue) opacityValue.textContent = `${opacity}%`;
+    }
+    
+    const countyBorders = params.get('countyBorders');
+    if (countyBorders !== null) {
+        countyBoundariesVisible = (countyBorders === '1');
+    }
+    
+    // Load counties if specified
+    const state = params.get('state');
+    const county = params.get('county');
+    const modeType = params.get('mode_type');
+    
+    if (state) {
+        // Set state dropdown
+        const stateSelect = document.getElementById('state-select');
+        stateSelect.value = state;
+        populateCountyDropdown(state);
+        
+        if (modeType === 'all') {
+            // Load all counties in state
+            setTimeout(() => loadAllCountiesInState(state), 500);
+        } else if (county) {
+            // Load specific county
+            const countySelect = document.getElementById('county-select');
+            countySelect.value = county;
+            setTimeout(() => loadScoreDataForCounty(state, county), 500);
+        }
+    }
+}
+
 // Load available counties (no longer loading full GeoJSON upfront)
 async function loadGeoJSON() {
     try {
         await loadAvailableCounties();
+        await loadCustomLocations();
     } catch (error) {
         console.error('Error loading counties:', error);
         alert('Error loading county data.');
     }
+}
+
+// Load custom locations from GeoJSON file
+async function loadCustomLocations() {
+    try {
+        const response = await fetch('data/custom-locations.geojson');
+        if (!response.ok) {
+            console.log('No custom locations file found');
+            return;
+        }
+        customLocationsData = await response.json();
+        console.log(`Loaded ${customLocationsData.features.length} custom locations`);
+    } catch (error) {
+        console.error('Error loading custom locations:', error);
+    }
+}
+
+// Get marker color based on location type and enrollment mode
+function getCustomLocationColor(properties) {
+    const locationType = enrollmentMode === 'private' ? properties.esType : properties.esPlusType;
+    
+    switch(locationType) {
+        case 'great':
+            return 'green';
+        case 'minimal':
+            return 'orange';
+        case 'unacceptable':
+            return 'red';
+        default:
+            return 'blue'; // fallback
+    }
+}
+
+// Display custom locations on map
+function displayCustomLocations() {
+    // Remove existing layer if any
+    if (customLocationsLayer) {
+        map.removeLayer(customLocationsLayer);
+        customLocationsLayer = null;
+    }
+    
+    if (!customLocationsVisible || !customLocationsData) {
+        return;
+    }
+    
+    // Create markers for each location
+    const markers = customLocationsData.features.map(feature => {
+        const coords = feature.geometry.coordinates;
+        const props = feature.properties;
+        const color = getCustomLocationColor(props);
+        
+        const marker = L.marker([coords[1], coords[0]], {
+            icon: L.icon({
+                iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-${color}.png`,
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            })
+        });
+        
+        // Create popup content
+        const locationType = enrollmentMode === 'private' ? props.esType : props.esPlusType;
+        const typeLabel = locationType === 'great' ? 'Great Location' : 
+                         locationType === 'minimal' ? 'Minimally Acceptable' : 
+                         'Unacceptable';
+        const modeLabel = enrollmentMode === 'private' ? 'Private Only' : 'Private + Public';
+        
+        marker.bindPopup(`
+            <div style="min-width: 200px;">
+                <h3 style="margin: 0 0 8px 0; font-size: 1rem;">${props.name}</h3>
+                <p style="margin: 4px 0; font-size: 0.875rem; color: #666;">${props.address}</p>
+                <p style="margin: 8px 0 0 0; font-size: 0.875rem;">
+                    <strong>${modeLabel}:</strong> <span style="color: ${color};">${typeLabel}</span>
+                </p>
+            </div>
+        `);
+        
+        return marker;
+    });
+    
+    // Create layer group
+    customLocationsLayer = L.layerGroup(markers).addTo(map);
+}
+
+// Toggle custom locations visibility
+function toggleCustomLocations() {
+    customLocationsVisible = !customLocationsVisible;
+    displayCustomLocations();
 }
 
 // Load available counties from manifest file
@@ -126,6 +412,18 @@ function getFeatureStyle(feature) {
         fillColor = isPrivate ? data.colors.esAbsolute : data.colors.esPlusAbsolute;
     } else if (currentVisualization === 'wsAbsolute') {
         fillColor = data.colors.wsAbsolute;
+    } else if (currentVisualization === 'esRelative') {
+        if (isFiltered) {
+            fillColor = isPrivate ? data.colors.esRelativeFiltered : data.colors.esPlusRelativeFiltered;
+        } else {
+            fillColor = isPrivate ? data.colors.esRelative : data.colors.esPlusRelative;
+        }
+    } else if (currentVisualization === 'wsRelative') {
+        if (isFiltered) {
+            fillColor = data.colors.wsRelativeFiltered;
+        } else {
+            fillColor = data.colors.wsRelative;
+        }
     } else if (currentVisualization === 'es') {
         if (isFiltered) {
             fillColor = isPrivate ? data.colors.esFiltered : data.colors.esPlusFiltered;
@@ -143,6 +441,12 @@ function getFeatureStyle(feature) {
             fillColor = isPrivate ? data.colors.comboFiltered : data.colors.comboPlusFiltered;
         } else {
             fillColor = isPrivate ? data.colors.combo : data.colors.comboPlus;
+        }
+    } else if (currentVisualization === 'comboRelative') {
+        if (isFiltered) {
+            fillColor = isPrivate ? data.colors.comboRelativeFiltered : data.colors.comboPlusRelativeFiltered;
+        } else {
+            fillColor = isPrivate ? data.colors.comboRelative : data.colors.comboPlusRelative;
         }
     }
     
@@ -218,6 +522,12 @@ async function loadMapData(stateCode, countyCode) {
         
         map.fitBounds(currentLayer.getBounds());
         updateLegend();
+        
+        // Track current state/county and update URL
+        currentStateCode = stateCode;
+        currentCountyCode = countyCode;
+        loadedCounties = [];
+        setTimeout(updateURL, 500); // Delay to ensure map bounds are set
     } catch (error) {
         console.error('Error loading county GeoJSON:', error);
         alert('Error loading map data for this county');
@@ -228,6 +538,18 @@ async function loadMapData(stateCode, countyCode) {
 function clearCountyBoundaries() {
     countyBoundaryLayers.forEach(layer => map.removeLayer(layer));
     countyBoundaryLayers = [];
+}
+
+// Toggle county boundaries visibility
+function toggleCountyBoundaries() {
+    countyBoundariesVisible = !countyBoundariesVisible;
+    countyBoundaryLayers.forEach(layer => {
+        if (countyBoundariesVisible) {
+            layer.addTo(map);
+        } else {
+            map.removeLayer(layer);
+        }
+    });
 }
 
 // Add black boundary around a county (load pre-generated boundary file)
@@ -251,7 +573,12 @@ async function addCountyBoundary(county) {
                 opacity: 1
             },
             interactive: false
-        }).addTo(map);
+        });
+        
+        // Only add to map if boundaries are visible
+        if (countyBoundariesVisible) {
+            boundaryLayer.addTo(map);
+        }
         
         countyBoundaryLayers.push(boundaryLayer);
     } catch (error) {
@@ -356,6 +683,12 @@ async function loadAllCountiesInState(stateCode) {
         
         console.log(`Total loaded: ${Object.keys(scoreData).length} block groups across ${countiesInState.length} counties`);
         
+        // Track loaded counties and update URL
+        currentStateCode = stateCode;
+        currentCountyCode = null;
+        loadedCounties = countiesInState.map(c => c.countyCode);
+        setTimeout(updateURL, 500); // Delay to ensure map bounds are set
+        
     } catch (error) {
         console.error('Error loading counties:', error);
         alert('Error loading county data: ' + error.message);
@@ -396,6 +729,25 @@ function updateLegend() {
                 <div class="legend-label">Blue - 0-1250</div>
             </div>
         `;
+    } else if (currentVisualization === 'esRelative' || currentVisualization === 'wsRelative' || currentVisualization === 'comboRelative') {
+        legendContent.innerHTML = `
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ef4444;"></div>
+                <div class="legend-label">Red - 75-100% of max</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #f97316;"></div>
+                <div class="legend-label">Orange - 50-75% of max</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #eab308;"></div>
+                <div class="legend-label">Yellow - 25-50% of max</div>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #3b82f6;"></div>
+                <div class="legend-label">Blue - 0-25% of max</div>
+            </div>
+        `;
     } else {
         legendContent.innerHTML = `
             <div class="legend-item">
@@ -426,10 +778,111 @@ function refreshVisualization() {
     }
 }
 
+// Geocode address and place marker
+async function searchAddress(address) {
+    if (!address || address.trim() === '') {
+        return;
+    }
+    
+    try {
+        // Use Nominatim (OpenStreetMap) geocoding service
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
+        );
+        
+        if (!response.ok) {
+            throw new Error('Geocoding service unavailable');
+        }
+        
+        const results = await response.json();
+        
+        if (results.length === 0) {
+            alert('Address not found. Please try a different search.');
+            return;
+        }
+        
+        const result = results[0];
+        const lat = parseFloat(result.lat);
+        const lon = parseFloat(result.lon);
+        
+        // Create new marker (don't remove existing ones)
+        const newMarker = L.marker([lat, lon], {
+            icon: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            })
+        }).addTo(map);
+        
+        // Add popup with address and close button
+        newMarker.bindPopup(`
+            <b>${result.display_name}</b><br>
+            <button onclick="removeMarker(${searchMarkers.length})" style="margin-top: 5px;">Remove Pin</button>
+        `).openPopup();
+        
+        // Add to markers array
+        searchMarkers.push(newMarker);
+        
+        // Update pin count display
+        updatePinCount();
+        
+        // Pan to location
+        map.setView([lat, lon], 13);
+        
+    } catch (error) {
+        console.error('Error geocoding address:', error);
+        alert('Error searching for address: ' + error.message);
+    }
+}
+
+// Remove a specific marker
+function removeMarker(index) {
+    if (searchMarkers[index]) {
+        map.removeLayer(searchMarkers[index]);
+        searchMarkers[index] = null;
+        updatePinCount();
+    }
+}
+
+// Clear all search markers
+function clearAllMarkers() {
+    searchMarkers.forEach(marker => {
+        if (marker) {
+            map.removeLayer(marker);
+        }
+    });
+    searchMarkers = [];
+    updatePinCount();
+}
+
+// Update pin count display
+function updatePinCount() {
+    const activeMarkers = searchMarkers.filter(m => m !== null).length;
+    const countElement = document.getElementById('pin-count');
+    if (countElement) {
+        countElement.textContent = `${activeMarkers} pin${activeMarkers !== 1 ? 's' : ''}`;
+    }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
     initMap();
     loadGeoJSON();
+    
+    // Add map moveend listener to update URL when viewport changes
+    map.on('moveend', () => {
+        if (currentStateCode) { // Only update if we have data loaded
+            updateURL();
+        }
+    });
+    
+    // Load state from URL if present
+    setTimeout(() => {
+        loadFromURL();
+    }, 100);
     
     // Auto-load score data when county is selected
     async function loadScoreDataForCounty(stateCode, countyCode) {
@@ -482,6 +935,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('toggle-private').classList.add('active');
         document.getElementById('toggle-public').classList.remove('active');
         refreshVisualization();
+        displayCustomLocations(); // Refresh custom locations with new mode
+        updateURL();
     });
     
     document.getElementById('toggle-public').addEventListener('click', () => {
@@ -489,6 +944,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('toggle-public').classList.add('active');
         document.getElementById('toggle-private').classList.remove('active');
         refreshVisualization();
+        displayCustomLocations(); // Refresh custom locations with new mode
+        updateURL();
     });
     
     // Absolute filter toggle
@@ -497,6 +954,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('toggle-filter-off').classList.add('active');
         document.getElementById('toggle-filter-on').classList.remove('active');
         refreshVisualization();
+        updateURL();
     });
     
     document.getElementById('toggle-filter-on').addEventListener('click', () => {
@@ -504,6 +962,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('toggle-filter-on').classList.add('active');
         document.getElementById('toggle-filter-off').classList.remove('active');
         refreshVisualization();
+        updateURL();
     });
     
     // Boundary toggle
@@ -512,7 +971,77 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('toggle-boundaries-btn');
         btn.textContent = boundariesVisible ? 'Hide Boundaries' : 'Show Boundaries';
         refreshVisualization();
+        updateURL();
     });
+    
+    // Address search
+    const searchInput = document.getElementById('address-search');
+    const searchButton = document.getElementById('search-button');
+    
+    searchButton.addEventListener('click', () => {
+        const address = searchInput.value;
+        searchAddress(address);
+    });
+    
+    // Clear all pins button
+    const clearPinsButton = document.getElementById('clear-pins-btn');
+    if (clearPinsButton) {
+        clearPinsButton.addEventListener('click', clearAllMarkers);
+    }
+    
+    // County boundaries toggle (for multi-county mode)
+    const toggleCountyBoundariesBtn = document.getElementById('toggle-county-boundaries-btn');
+    if (toggleCountyBoundariesBtn) {
+        toggleCountyBoundariesBtn.addEventListener('click', () => {
+            toggleCountyBoundaries();
+            toggleCountyBoundariesBtn.textContent = countyBoundariesVisible ? 'Hide County Boundaries' : 'Show County Boundaries';
+            updateURL();
+        });
+    }
+    
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            const address = searchInput.value;
+            searchAddress(address);
+        }
+    });
+    
+    // Custom locations toggle
+    const toggleCustomLocationsBtn = document.getElementById('toggle-custom-locations-btn');
+    if (toggleCustomLocationsBtn) {
+        toggleCustomLocationsBtn.addEventListener('click', () => {
+            toggleCustomLocations();
+            toggleCustomLocationsBtn.textContent = customLocationsVisible ? 'Hide Custom Locations' : 'Show Custom Locations';
+        });
+    }
+    
+    // Screenshot button
+    const screenshotBtn = document.getElementById('screenshot-btn');
+    if (screenshotBtn) {
+        screenshotBtn.addEventListener('click', takeScreenshot);
+    }
+    
+    // Screenshot modal controls
+    const screenshotDownloadBtn = document.getElementById('screenshot-download');
+    const screenshotCancelBtn = document.getElementById('screenshot-cancel');
+    const screenshotModal = document.getElementById('screenshot-modal');
+    
+    if (screenshotDownloadBtn) {
+        screenshotDownloadBtn.addEventListener('click', downloadScreenshot);
+    }
+    
+    if (screenshotCancelBtn) {
+        screenshotCancelBtn.addEventListener('click', closeScreenshotModal);
+    }
+    
+    // Close modal when clicking outside
+    if (screenshotModal) {
+        screenshotModal.addEventListener('click', (e) => {
+            if (e.target === screenshotModal) {
+                closeScreenshotModal();
+            }
+        });
+    }
     
     // Opacity slider
     document.getElementById('opacity-slider').addEventListener('input', (e) => {
@@ -520,6 +1049,7 @@ document.addEventListener('DOMContentLoaded', () => {
         fillOpacity = value / 100;
         document.getElementById('opacity-value').textContent = `${value}%`;
         refreshVisualization();
+        updateURL();
     });
     
     // Visualization layer selection
@@ -530,6 +1060,7 @@ document.addEventListener('DOMContentLoaded', () => {
             option.querySelector('input').checked = true;
             currentVisualization = option.dataset.layer;
             refreshVisualization();
+            updateURL();
         });
     });
     

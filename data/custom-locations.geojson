@@ -1,0 +1,31 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-71.25405797324359, 42.47387412657061]
+      },
+      "properties": {
+        "name": "24 Hartwell Ave",
+        "address": "24 Hartwell Ave, Lexington, MA 02421",
+        "esType": "unacceptable",
+        "esPlusType": "unacceptable"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-71.19922455975255, 42.44990233359782]
+      },
+      "properties": {
+        "name": "419 Lowell St",
+        "address": "419 Lowell St, Lexington, MA 02420",
+        "esType": "unacceptable",
+        "esPlusType": "unacceptable"
+      }
+    }
+  ]
+}

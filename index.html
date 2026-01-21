@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Score Visualizer</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dom-to-image@2.6.0/dist/dom-to-image.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -189,6 +191,80 @@
             font-size: 0.875rem;
             color: #475569;
         }
+
+        /* Screenshot Preview Modal */
+        #screenshot-modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            align-items: center;
+            justify-content: center;
+        }
+
+        #screenshot-modal.active {
+            display: flex;
+        }
+
+        .screenshot-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: auto;
+            position: relative;
+        }
+
+        .screenshot-content h2 {
+            margin-bottom: 15px;
+            color: #1f2937;
+        }
+
+        #screenshot-preview {
+            max-width: 100%;
+            max-height: 70vh;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+        }
+
+        .screenshot-buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .screenshot-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .screenshot-buttons .download-btn {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        .screenshot-buttons .download-btn:hover {
+            background-color: #2563eb;
+        }
+
+        .screenshot-buttons .cancel-btn {
+            background-color: #e5e7eb;
+            color: #374151;
+        }
+
+        .screenshot-buttons .cancel-btn:hover {
+            background-color: #d1d5db;
+        }
     </style>
 </head>
 <body>
@@ -212,7 +288,21 @@
         </div>
 
         <div class="section">
-            <h2>2. Enrollment Type</h2>
+            <h2>2. Search Address</h2>
+            <div style="display: flex; gap: 5px;">
+                <input type="text" id="address-search" placeholder="Enter address..." style="flex: 1; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.875rem;">
+                <button id="search-button" class="toggle-btn" style="padding: 8px 16px; margin: 0;">Add Pin</button>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
+                <p style="font-size: 0.75rem; color: #6b7280; margin: 0;">
+                    Active pins: <span id="pin-count" style="font-weight: bold;">0 pins</span>
+                </p>
+                <button id="clear-pins-btn" class="toggle-btn" style="padding: 4px 12px; margin: 0; font-size: 0.75rem;">Clear All</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>3. Enrollment Type</h2>
             <div class="toggle-group">
                 <button class="toggle-btn active" id="toggle-private">Private Only</button>
                 <button class="toggle-btn" id="toggle-public">Private + Public</button>
@@ -220,10 +310,10 @@
         </div>
 
         <div class="section">
-            <h2>3. Absolute Filter</h2>
+            <h2>4. Absolute Filter</h2>
             <div class="toggle-group">
                 <button class="toggle-btn" id="toggle-filter-off">All Block Groups</button>
-                <button class="toggle-btn active" id="toggle-filter-on">ES≥2500 & WS≥2500 Only</button>
+                <button class="toggle-btn active" id="toggle-filter-on">Filtered Only</button>
             </div>
             <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">
                 When enabled, quartile maps only include block groups meeting both thresholds
@@ -231,11 +321,11 @@
         </div>
 
         <div class="section">
-            <h2>4. Select Visualization</h2>
+            <h2>5. Select Visualization</h2>
             <div class="radio-group">
                 <div class="radio-option selected" data-layer="absolute">
                     <input type="radio" name="layer" id="layer-absolute" value="absolute" checked>
-                    <label for="layer-absolute">Absolute Check (ES≥2500 & WS≥2500)</label>
+                    <label for="layer-absolute">Absolute Check (ES≥2500 or ES+≥3500, & WS≥2500)</label>
                 </div>
                 <div class="radio-option" data-layer="esAbsolute">
                     <input type="radio" name="layer" id="layer-esAbsolute" value="esAbsolute">
@@ -244,6 +334,18 @@
                 <div class="radio-option" data-layer="wsAbsolute">
                     <input type="radio" name="layer" id="layer-wsAbsolute" value="wsAbsolute">
                     <label for="layer-wsAbsolute">Wealth Score (Absolute)</label>
+                </div>
+                <div class="radio-option" data-layer="esRelative">
+                    <input type="radio" name="layer" id="layer-esRelative" value="esRelative">
+                    <label for="layer-esRelative">Enrollment Score (Relative)</label>
+                </div>
+                <div class="radio-option" data-layer="wsRelative">
+                    <input type="radio" name="layer" id="layer-wsRelative" value="wsRelative">
+                    <label for="layer-wsRelative">Wealth Score (Relative)</label>
+                </div>
+                <div class="radio-option" data-layer="comboRelative">
+                    <input type="radio" name="layer" id="layer-comboRelative" value="comboRelative">
+                    <label for="layer-comboRelative">Combined Score (Relative)</label>
                 </div>
                 <div class="radio-option" data-layer="es">
                     <input type="radio" name="layer" id="layer-es" value="es">
@@ -262,8 +364,23 @@
 
 
         <div class="section">
-            <h2>5. Display Options</h2>
+            <h2>6. Display Options</h2>
             <button id="toggle-boundaries-btn" class="toggle-btn">Hide Boundaries</button>
+            <button id="toggle-county-boundaries-btn" class="toggle-btn" style="margin-top: 10px;">Hide County Boundaries</button>
+            <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">
+                County boundaries toggle applies when viewing all counties in a state
+            </p>
+            
+            <button id="toggle-custom-locations-btn" class="toggle-btn" style="margin-top: 15px;">Show Custom Locations</button>
+            <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">
+                Display custom location pins from custom-locations.geojson<br>
+                🟢 Green = Great | 🟠 Orange = Minimal | 🔴 Red = Unacceptable
+            </p>
+            
+            <button id="screenshot-btn" class="toggle-btn" style="margin-top: 15px;">📸 Take Screenshot</button>
+            <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">
+                Capture the current map view with preview before downloading
+            </p>
             
             <label for="opacity-slider" style="margin-top: 15px; display: block;">Fill Opacity: <span id="opacity-value">60%</span></label>
             <input type="range" id="opacity-slider" min="0" max="100" value="60" style="width: 100%;">
@@ -277,7 +394,18 @@
 
     <div id="map"></div>
 
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Screenshot Preview Modal -->
+    <div id="screenshot-modal">
+        <div class="screenshot-content">
+            <h2>Screenshot Preview</h2>
+            <img id="screenshot-preview" alt="Map screenshot preview">
+            <div class="screenshot-buttons">
+                <button class="cancel-btn" id="screenshot-cancel">Cancel</button>
+                <button class="download-btn" id="screenshot-download">Download</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
     <script src="app.js"></script>
 </body>
