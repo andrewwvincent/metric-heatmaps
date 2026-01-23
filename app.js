@@ -18,6 +18,8 @@ let customLocationsData = null; // Store custom locations GeoJSON data
 let currentStateCode = null; // Track current state
 let currentCountyCode = null; // Track current county
 let loadedCounties = []; // Track all loaded counties in multi-county mode
+let isNationalMode = false; // Track if we're showing all counties nationally
+let loadingProgress = { loaded: 0, total: 0, inProgress: false }; // Track loading progress
 
 const STATE_NAMES = {
     '01': 'Alabama', '02': 'Alaska', '04': 'Arizona', '05': 'Arkansas', '06': 'California',
@@ -129,9 +131,15 @@ function updateURL() {
     if (isMultiCountyMode) {
         params.set('countyBorders', countyBoundariesVisible ? '1' : '0');
     }
-    
+
+    // Save custom locations visibility
+    params.set('pins', customLocationsVisible ? '1' : '0');
+
     // Save loaded counties
-    if (isMultiCountyMode && loadedCounties.length > 0) {
+    if (isNationalMode) {
+        // For national mode (all counties)
+        params.set('mode_type', 'national');
+    } else if (isMultiCountyMode && loadedCounties.length > 0) {
         // For multi-county mode (all counties in state)
         params.set('state', currentStateCode);
         params.set('mode_type', 'all');
@@ -230,18 +238,35 @@ function loadFromURL() {
     if (countyBorders !== null) {
         countyBoundariesVisible = (countyBorders === '1');
     }
-    
+
+    // Restore custom locations visibility
+    const pins = params.get('pins');
+    if (pins !== null) {
+        customLocationsVisible = (pins === '1');
+        const toggleBtn = document.getElementById('toggle-custom-locations-btn');
+        if (toggleBtn) {
+            toggleBtn.textContent = customLocationsVisible ? 'Hide Custom Locations' : 'Show Custom Locations';
+        }
+        // Display if data already loaded (loadFromURL runs after loadCustomLocations)
+        if (customLocationsVisible && customLocationsData) {
+            displayCustomLocations();
+        }
+    }
+
     // Load counties if specified
     const state = params.get('state');
     const county = params.get('county');
     const modeType = params.get('mode_type');
-    
-    if (state) {
+
+    if (modeType === 'national') {
+        // Load all counties nationally
+        setTimeout(() => loadAllCountiesNational(), 500);
+    } else if (state) {
         // Set state dropdown
         const stateSelect = document.getElementById('state-select');
         stateSelect.value = state;
         populateCountyDropdown(state);
-        
+
         if (modeType === 'all') {
             // Load all counties in state
             setTimeout(() => loadAllCountiesInState(state), 500);
@@ -275,6 +300,11 @@ async function loadCustomLocations() {
         }
         customLocationsData = await response.json();
         console.log(`Loaded ${customLocationsData.features.length} custom locations`);
+
+        // Display if visibility was set from URL
+        if (customLocationsVisible) {
+            displayCustomLocations();
+        }
     } catch (error) {
         console.error('Error loading custom locations:', error);
     }
@@ -353,6 +383,7 @@ function displayCustomLocations() {
 function toggleCustomLocations() {
     customLocationsVisible = !customLocationsVisible;
     displayCustomLocations();
+    updateURL();
 }
 
 // Load available counties from manifest file
@@ -502,6 +533,7 @@ async function loadMapData(stateCode, countyCode) {
     }
     clearCountyBoundaries();
     isMultiCountyMode = false;
+    isNationalMode = false;
     
     // Find the county's GeoJSON file from the manifest
     const county = availableCounties.find(c => 
@@ -618,6 +650,7 @@ async function loadAllCountiesInState(stateCode) {
     }
     clearCountyBoundaries();
     isMultiCountyMode = true;
+    isNationalMode = false;
     
     // Get all counties for this state
     const countiesInState = availableCounties.filter(c => c.stateCode === stateCode);
@@ -712,9 +745,191 @@ async function loadAllCountiesInState(stateCode) {
         currentCountyCode = null;
         loadedCounties = countiesInState.map(c => c.countyCode);
         setTimeout(updateURL, 500); // Delay to ensure map bounds are set
-        
+
     } catch (error) {
         console.error('Error loading counties:', error);
+        alert('Error loading county data: ' + error.message);
+    }
+}
+
+// Calculate distance between two points (Haversine formula)
+function calculateDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+}
+
+// Update loading progress display
+function updateLoadingProgress() {
+    const progressContainer = document.getElementById('loading-progress');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+
+    if (!progressContainer) return;
+
+    if (loadingProgress.inProgress) {
+        progressContainer.style.display = 'block';
+        const percent = Math.round((loadingProgress.loaded / loadingProgress.total) * 100);
+        progressBar.style.width = `${percent}%`;
+        progressText.textContent = `Loading ${loadingProgress.loaded} of ${loadingProgress.total} counties...`;
+    } else {
+        progressContainer.style.display = 'none';
+    }
+}
+
+// Load all counties nationally with viewport-based batching
+async function loadAllCountiesNational() {
+    // Clear existing layers
+    if (currentLayer) {
+        map.removeLayer(currentLayer);
+    }
+    clearCountyBoundaries();
+    isMultiCountyMode = true;
+    isNationalMode = true;
+
+    // Get viewport center for distance sorting
+    const center = map.getCenter();
+    const viewportLat = center.lat;
+    const viewportLng = center.lng;
+
+    // Sort counties by distance from viewport center
+    const countiesWithDistance = availableCounties
+        .filter(c => c.center) // Only counties with center coordinates
+        .map(county => ({
+            ...county,
+            distance: calculateDistance(viewportLat, viewportLng, county.center[0], county.center[1])
+        }))
+        .sort((a, b) => a.distance - b.distance);
+
+    console.log(`Loading ${countiesWithDistance.length} counties, starting from closest to viewport`);
+
+    // Initialize progress tracking
+    loadingProgress = { loaded: 0, total: countiesWithDistance.length, inProgress: true };
+    updateLoadingProgress();
+
+    // Reset data
+    scoreData = {};
+    const allFeatures = [];
+    const BATCH_SIZE = 8;
+
+    try {
+        // Process in batches
+        for (let i = 0; i < countiesWithDistance.length; i += BATCH_SIZE) {
+            const batch = countiesWithDistance.slice(i, i + BATCH_SIZE);
+
+            // Load batch in parallel
+            const batchPromises = batch.map(async (county) => {
+                try {
+                    // Load unified scores
+                    const scoresResponse = await fetch(`data/${county.filename}`);
+                    if (!scoresResponse.ok) {
+                        console.error(`Failed to load scores for ${county.name}`);
+                        return null;
+                    }
+                    const scoresData = await scoresResponse.json();
+
+                    // Load GeoJSON
+                    const geojsonResponse = await fetch(`data/${county.geojsonFile}`);
+                    if (!geojsonResponse.ok) {
+                        console.error(`Failed to load GeoJSON for ${county.name}`);
+                        return null;
+                    }
+                    const countyGeoJSON = await geojsonResponse.json();
+
+                    return { county, scoresData, countyGeoJSON };
+                } catch (error) {
+                    console.error(`Error loading ${county.name}:`, error);
+                    return null;
+                }
+            });
+
+            const batchResults = await Promise.all(batchPromises);
+
+            // Process batch results
+            for (const result of batchResults) {
+                if (!result) continue;
+
+                const { county, scoresData: scores, countyGeoJSON } = result;
+
+                // Merge scores
+                scores.forEach(item => {
+                    scoreData[item.geoid] = {
+                        enrollmentScore: item.enrollmentScore,
+                        enrollmentScorePlus: item.enrollmentScorePlus,
+                        wealthScore: item.wealthScore,
+                        colors: item.colors
+                    };
+                });
+
+                // Add features
+                allFeatures.push(...countyGeoJSON.features);
+
+                // Add county boundary
+                await addCountyBoundary(county);
+
+                loadingProgress.loaded++;
+                updateLoadingProgress();
+
+                console.log(`Loaded ${county.name} (${loadingProgress.loaded}/${loadingProgress.total})`);
+            }
+
+            // Render current progress after each batch (allows UI to update)
+            if (currentLayer) {
+                map.removeLayer(currentLayer);
+            }
+
+            const currentGeoJSON = {
+                type: 'FeatureCollection',
+                features: allFeatures
+            };
+
+            currentLayer = L.geoJSON(currentGeoJSON, {
+                style: getFeatureStyle,
+                onEachFeature: (feature, layer) => {
+                    layer.on('click', () => {
+                        const geoid = feature.properties.GEOID;
+                        const data = scoreData[geoid];
+                        if (data) {
+                            const esScore = enrollmentMode === 'private' ? data.enrollmentScore : data.enrollmentScorePlus;
+                            alert(`GEOID: ${geoid}\nEnrollment Score: ${esScore?.toFixed(2) || 'N/A'}\nWealth Score: ${data.wealthScore?.toFixed(2) || 'N/A'}`);
+                        }
+                    });
+                }
+            }).addTo(map);
+
+            // Small delay to let UI breathe
+            await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
+        // Final status update
+        loadingProgress.inProgress = false;
+        updateLoadingProgress();
+
+        const status = document.getElementById('data-status');
+        status.style.display = 'block';
+        status.textContent = `✓ Loaded ${countiesWithDistance.length} counties (${Object.keys(scoreData).length.toLocaleString()} block groups)`;
+        status.style.backgroundColor = '#dcfce7';
+        status.style.color = '#166534';
+
+        updateLegend();
+
+        // Track state and update URL
+        currentStateCode = null;
+        currentCountyCode = null;
+        loadedCounties = countiesWithDistance.map(c => `${c.stateCode}-${c.countyCode}`);
+        setTimeout(updateURL, 500);
+
+        console.log(`National load complete: ${Object.keys(scoreData).length.toLocaleString()} block groups`);
+
+    } catch (error) {
+        console.error('Error loading counties:', error);
+        loadingProgress.inProgress = false;
+        updateLoadingProgress();
         alert('Error loading county data: ' + error.message);
     }
 }
@@ -1098,13 +1313,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Load all counties button
+    // Load all counties in state button
     document.getElementById('load-all-counties-btn').addEventListener('click', () => {
         const stateCode = document.getElementById('state-select').value;
         if (stateCode) {
             loadAllCountiesInState(stateCode);
         }
     });
+
+    // Load all counties nationally button
+    const loadNationalBtn = document.getElementById('load-national-btn');
+    if (loadNationalBtn) {
+        loadNationalBtn.addEventListener('click', () => {
+            loadAllCountiesNational();
+        });
+    }
     
     // County selection - auto-load when county is selected
     document.getElementById('county-select').addEventListener('change', (e) => {

@@ -277,13 +277,26 @@
             <select id="state-select">
                 <option value="">Select State...</option>
             </select>
-            
+
             <button id="load-all-counties-btn" class="toggle-btn" style="width: 100%; margin-top: 10px; display: none;">Load All Counties in State</button>
-            
+
             <label for="county-select" style="margin-top: 15px;">County (or load all above):</label>
             <select id="county-select" disabled>
                 <option value="">Select County...</option>
             </select>
+
+            <button id="load-national-btn" class="toggle-btn" style="width: 100%; margin-top: 15px; background-color: #059669; border-color: #059669;">Load All Counties (National)</button>
+            <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">
+                Load all 80 counties (~70k block groups). Loads closest to viewport first.
+            </p>
+
+            <div id="loading-progress" style="display: none; margin-top: 10px;">
+                <div style="background-color: #e5e7eb; border-radius: 4px; overflow: hidden; height: 8px;">
+                    <div id="progress-bar" style="background-color: #3b82f6; height: 100%; width: 0%; transition: width 0.3s;"></div>
+                </div>
+                <p id="progress-text" style="font-size: 0.75rem; color: #6b7280; margin-top: 4px; text-align: center;">Loading...</p>
+            </div>
+
             <div id="data-status" class="status" style="display: none;"></div>
         </div>
 
@@ -325,7 +338,7 @@
             <div class="radio-group">
                 <div class="radio-option selected" data-layer="absolute">
                     <input type="radio" name="layer" id="layer-absolute" value="absolute" checked>
-                    <label for="layer-absolute">Absolute Check (ES≥2500 or ES+≥3500, & WS≥2500)</label>
+                    <label for="layer-absolute">Absolute Check (ES≥2500 & WS≥2500)</label>
                 </div>
                 <div class="radio-option" data-layer="esAbsolute">
                     <input type="radio" name="layer" id="layer-esAbsolute" value="esAbsolute">

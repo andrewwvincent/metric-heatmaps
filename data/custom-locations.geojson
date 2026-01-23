@@ -5,11 +5,24 @@
       "type": "Feature",
       "geometry": {
         "type": "Point",
-        "coordinates": [-71.25405797324359, 42.47387412657061]
+        "coordinates": [-111.91685147555361, 33.67323993407489]
       },
       "properties": {
-        "name": "24 Hartwell Ave",
-        "address": "24 Hartwell Ave, Lexington, MA 02421",
+        "name": "Alpha Scottsdale",
+        "address": "20624 N 76th St, Scottsdale, AZ 85255",
+        "esType": "unacceptable",
+        "esPlusType": "great"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-80.13373549107183, 26.810256134357118]
+      },
+      "properties": {
+        "name": "Alpha Palm Beach",
+        "address": "353 Hiatt Dr, Palm Beach Gardens, FL 33418",
         "esType": "unacceptable",
         "esPlusType": "unacceptable"
       }
@@ -18,13 +31,65 @@
       "type": "Feature",
       "geometry": {
         "type": "Point",
-        "coordinates": [-71.19922455975255, 42.44990233359782]
+        "coordinates": [-117.66875014856679, 33.680472108496886]
       },
       "properties": {
-        "name": "419 Lowell St",
-        "address": "419 Lowell St, Lexington, MA 02420",
+        "name": "Alpha Orange County",
+        "address": "26462 Towne Centre Dr, Lake Forest, CA 92610",
+        "esType": "unacceptable",
+        "esPlusType": "great"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-78.56107518550628, 35.939842121941794]
+      },
+      "properties": {
+        "name": "Alpha Raleigh",
+        "address": "12600 Spruce Tree Way, Raleigh, NC 27614",
         "esType": "unacceptable",
         "esPlusType": "unacceptable"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-80.78388725646431, 35.360723259344006]
+      },
+      "properties": {
+        "name": "Alpha Charlotte",
+        "address": "4801 Prosperity Church Rd, Charlotte, NC 28269",
+        "esType": "unacceptable",
+        "esPlusType": "unacceptable"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-77.4355546214237, 38.87805536595217]
+      },
+      "properties": {
+        "name": "Alpha Chantilly",
+        "address": "4550 Walney Road, Chantilly, VA 20151",
+        "esType": "unacceptable",
+        "esPlusType": "great"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [-96.74853820625503, 33.07519406621188]
+      },
+      "properties": {
+        "name": "Alpha Plano",
+        "address": "7220 Independence Pkwy, Plano, TX 75025",
+        "esType": "unacceptable",
+        "esPlusType": "great"
       }
     }
   ]
