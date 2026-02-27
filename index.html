@@ -8,11 +8,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dom-to-image@2.6.0/dist/dom-to-image.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -29,49 +25,22 @@
             box-shadow: 2px 0 5px rgba(0,0,0,0.1);
         }
 
-        #map {
-            flex: 1;
-            height: 100vh;
-        }
+        #map { flex: 1; height: 100vh; }
 
-        h1 {
-            font-size: 1.5rem;
-            margin-bottom: 20px;
-            color: #1e293b;
-        }
+        h1 { font-size: 1.5rem; margin-bottom: 20px; color: #1e293b; }
 
         .section {
             margin-bottom: 25px;
             padding-bottom: 20px;
             border-bottom: 1px solid #e5e7eb;
         }
+        .section:last-child { border-bottom: none; }
 
-        .section:last-child {
-            border-bottom: none;
-        }
+        h2 { font-size: 1rem; margin-bottom: 12px; color: #475569; font-weight: 600; }
 
-        h2 {
-            font-size: 1rem;
-            margin-bottom: 12px;
-            color: #475569;
-            font-weight: 600;
-        }
+        label { display: block; margin-bottom: 8px; font-size: 0.875rem; color: #64748b; }
 
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-size: 0.875rem;
-            color: #64748b;
-        }
-
-        select, input[type="file"] {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #cbd5e1;
-            border-radius: 4px;
-            font-size: 0.875rem;
-            margin-bottom: 10px;
-        }
+        select { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 0.875rem; margin-bottom: 10px; }
 
         button {
             width: 100%;
@@ -85,24 +54,10 @@
             font-weight: 500;
             margin-top: 8px;
         }
-
-        button:hover {
-            background-color: #2563eb;
-        }
-
-        button:disabled {
-            background-color: #cbd5e1;
-            cursor: not-allowed;
-        }
-
-        .toggle-group {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
+        button:hover { background-color: #2563eb; }
+        button:disabled { background-color: #cbd5e1; cursor: not-allowed; }
 
         .toggle-btn {
-            flex: 1;
             padding: 8px;
             background-color: #e2e8f0;
             color: #475569;
@@ -114,17 +69,7 @@
             transition: all 0.2s;
         }
 
-        .toggle-btn.active {
-            background-color: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
-        }
-
-        .radio-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+        .radio-group { display: flex; flex-direction: column; gap: 8px; }
 
         .radio-option {
             display: flex;
@@ -136,26 +81,10 @@
             cursor: pointer;
             transition: all 0.2s;
         }
-
-        .radio-option:hover {
-            border-color: #3b82f6;
-        }
-
-        .radio-option.selected {
-            background-color: #eff6ff;
-            border-color: #3b82f6;
-        }
-
-        .radio-option input[type="radio"] {
-            margin-right: 10px;
-            width: auto;
-        }
-
-        .radio-option label {
-            margin: 0;
-            cursor: pointer;
-            flex: 1;
-        }
+        .radio-option:hover { border-color: #3b82f6; }
+        .radio-option.selected { background-color: #eff6ff; border-color: #3b82f6; }
+        .radio-option input[type="radio"] { margin-right: 10px; width: auto; }
+        .radio-option label { margin: 0; cursor: pointer; flex: 1; }
 
         .status {
             padding: 10px;
@@ -166,131 +95,82 @@
             margin-top: 10px;
         }
 
-        .legend {
-            background-color: white;
-            padding: 15px;
-            border-radius: 4px;
-            margin-top: 15px;
-        }
+        .legend { background-color: white; padding: 15px; border-radius: 4px; margin-top: 15px; }
+        .legend-item { display: flex; align-items: center; margin-bottom: 8px; }
+        .legend-color { width: 30px; height: 20px; border-radius: 3px; margin-right: 10px; border: 1px solid #cbd5e1; }
+        .legend-label { font-size: 0.875rem; color: #475569; }
 
-        .legend-item {
-            display: flex;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .legend-color {
-            width: 30px;
-            height: 20px;
-            border-radius: 3px;
-            margin-right: 10px;
+        /* County checklist */
+        #county-list {
+            max-height: 200px;
+            overflow-y: auto;
             border: 1px solid #cbd5e1;
-        }
-
-        .legend-label {
-            font-size: 0.875rem;
-            color: #475569;
-        }
-
-        /* Screenshot Preview Modal */
-        #screenshot-modal {
+            border-radius: 4px;
+            background: white;
+            margin-bottom: 10px;
             display: none;
-            position: fixed;
-            z-index: 10000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
+        }
+        #county-list label {
+            display: flex;
             align-items: center;
-            justify-content: center;
-        }
-
-        #screenshot-modal.active {
-            display: flex;
-        }
-
-        .screenshot-content {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 90%;
-            max-height: 90%;
-            overflow: auto;
-            position: relative;
-        }
-
-        .screenshot-content h2 {
-            margin-bottom: 15px;
-            color: #1f2937;
-        }
-
-        #screenshot-preview {
-            max-width: 100%;
-            max-height: 70vh;
-            border: 1px solid #d1d5db;
-            border-radius: 4px;
-        }
-
-        .screenshot-buttons {
-            margin-top: 15px;
-            display: flex;
-            gap: 10px;
-            justify-content: flex-end;
-        }
-
-        .screenshot-buttons button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
+            padding: 6px 10px;
+            margin: 0;
             cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 500;
+            font-size: 0.8125rem;
+            border-bottom: 1px solid #f1f5f9;
         }
+        #county-list label:hover { background-color: #f8fafc; }
+        #county-list input[type="checkbox"] { margin-right: 8px; }
+        .select-btns { display: flex; gap: 5px; margin-bottom: 8px; }
+        .select-btns button { flex: 1; padding: 6px; font-size: 0.75rem; margin: 0; }
 
-        .screenshot-buttons .download-btn {
-            background-color: #3b82f6;
-            color: white;
+        /* Screenshot Modal */
+        #screenshot-modal {
+            display: none; position: fixed; z-index: 10000;
+            left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            align-items: center; justify-content: center;
         }
+        #screenshot-modal.active { display: flex; }
+        .screenshot-content {
+            background-color: white; padding: 20px; border-radius: 8px;
+            max-width: 90%; max-height: 90%; overflow: auto; position: relative;
+        }
+        .screenshot-content h2 { margin-bottom: 15px; color: #1f2937; }
+        #screenshot-preview { max-width: 100%; max-height: 70vh; border: 1px solid #d1d5db; border-radius: 4px; }
+        .screenshot-buttons { margin-top: 15px; display: flex; gap: 10px; justify-content: flex-end; }
+        .screenshot-buttons button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.875rem; font-weight: 500; }
+        .screenshot-buttons .download-btn { background-color: #3b82f6; color: white; }
+        .screenshot-buttons .download-btn:hover { background-color: #2563eb; }
+        .screenshot-buttons .cancel-btn { background-color: #e5e7eb; color: #374151; }
+        .screenshot-buttons .cancel-btn:hover { background-color: #d1d5db; }
 
-        .screenshot-buttons .download-btn:hover {
-            background-color: #2563eb;
-        }
-
-        .screenshot-buttons .cancel-btn {
-            background-color: #e5e7eb;
-            color: #374151;
-        }
-
-        .screenshot-buttons .cancel-btn:hover {
-            background-color: #d1d5db;
-        }
+        /* Loading progress */
+        #loading-progress { display: none; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div id="sidebar">
         <h1>Score Visualizer</h1>
-        
+
+        <!-- 1. Select Location -->
         <div class="section">
             <h2>1. Select Location</h2>
+
             <label for="state-select">State:</label>
             <select id="state-select">
                 <option value="">Select State...</option>
             </select>
 
-            <button id="load-all-counties-btn" class="toggle-btn" style="width: 100%; margin-top: 10px; display: none;">Load All Counties in State</button>
+            <div class="select-btns" style="display: none;" id="county-btns">
+                <button id="select-all-btn">Select All</button>
+                <button id="deselect-all-btn" style="background-color: #6b7280;">Deselect All</button>
+            </div>
+            <div id="county-list"></div>
 
-            <label for="county-select" style="margin-top: 15px;">County (or load all above):</label>
-            <select id="county-select" disabled>
-                <option value="">Select County...</option>
-            </select>
+            <button id="load-counties-btn" disabled>Load Selected Counties</button>
 
-            <button id="load-national-btn" class="toggle-btn" style="width: 100%; margin-top: 15px; background-color: #059669; border-color: #059669;">Load All Counties (National)</button>
-            <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">
-                Load all 80 counties (~70k block groups). Loads closest to viewport first.
-            </p>
-
-            <div id="loading-progress" style="display: none; margin-top: 10px;">
+            <div id="loading-progress">
                 <div style="background-color: #e5e7eb; border-radius: 4px; overflow: hidden; height: 8px;">
                     <div id="progress-bar" style="background-color: #3b82f6; height: 100%; width: 0%; transition: width 0.3s;"></div>
                 </div>
@@ -300,105 +180,62 @@
             <div id="data-status" class="status" style="display: none;"></div>
         </div>
 
+        <!-- 2. Search Address -->
         <div class="section">
             <h2>2. Search Address</h2>
             <div style="display: flex; gap: 5px;">
                 <input type="text" id="address-search" placeholder="Enter address..." style="flex: 1; padding: 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.875rem;">
-                <button id="search-button" class="toggle-btn" style="padding: 8px 16px; margin: 0;">Add Pin</button>
+                <button id="search-button" class="toggle-btn" style="padding: 8px 16px; margin: 0; width: auto;">Add Pin</button>
             </div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.5rem;">
                 <p style="font-size: 0.75rem; color: #6b7280; margin: 0;">
                     Active pins: <span id="pin-count" style="font-weight: bold;">0 pins</span>
                 </p>
-                <button id="clear-pins-btn" class="toggle-btn" style="padding: 4px 12px; margin: 0; font-size: 0.75rem;">Clear All</button>
+                <button id="clear-pins-btn" class="toggle-btn" style="padding: 4px 12px; margin: 0; font-size: 0.75rem; width: auto;">Clear All</button>
             </div>
         </div>
 
+        <!-- 3. Select Metric -->
         <div class="section">
-            <h2>3. Enrollment Type</h2>
-            <div class="toggle-group">
-                <button class="toggle-btn active" id="toggle-private">Private Only</button>
-                <button class="toggle-btn" id="toggle-public">Private + Public</button>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2>4. Absolute Filter</h2>
-            <div class="toggle-group">
-                <button class="toggle-btn" id="toggle-filter-off">All Block Groups</button>
-                <button class="toggle-btn active" id="toggle-filter-on">Filtered Only</button>
-            </div>
-            <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">
-                When enabled, quartile maps only include block groups meeting both thresholds
-            </p>
-        </div>
-
-        <div class="section">
-            <h2>5. Select Visualization</h2>
+            <h2>3. Select Metric</h2>
             <div class="radio-group">
-                <div class="radio-option selected" data-layer="absolute">
-                    <input type="radio" name="layer" id="layer-absolute" value="absolute" checked>
-                    <label for="layer-absolute">Absolute Check (ES≥2500 & WS≥2500)</label>
+                <div class="radio-option selected" data-metric="esTrad">
+                    <input type="radio" name="metric" id="metric-esTrad" value="esTrad" checked>
+                    <label for="metric-esTrad">ES-Trad</label>
                 </div>
-                <div class="radio-option" data-layer="esAbsolute">
-                    <input type="radio" name="layer" id="layer-esAbsolute" value="esAbsolute">
-                    <label for="layer-esAbsolute">Enrollment Score (Absolute)</label>
+                <div class="radio-option" data-metric="esTradPlus">
+                    <input type="radio" name="metric" id="metric-esTradPlus" value="esTradPlus">
+                    <label for="metric-esTradPlus">ES-Trad+</label>
                 </div>
-                <div class="radio-option" data-layer="wsAbsolute">
-                    <input type="radio" name="layer" id="layer-wsAbsolute" value="wsAbsolute">
-                    <label for="layer-wsAbsolute">Wealth Score (Absolute)</label>
+                <div class="radio-option" data-metric="esWeighted">
+                    <input type="radio" name="metric" id="metric-esWeighted" value="esWeighted">
+                    <label for="metric-esWeighted">ES-Weighted</label>
                 </div>
-                <div class="radio-option" data-layer="esRelative">
-                    <input type="radio" name="layer" id="layer-esRelative" value="esRelative">
-                    <label for="layer-esRelative">Enrollment Score (Relative)</label>
-                </div>
-                <div class="radio-option" data-layer="wsRelative">
-                    <input type="radio" name="layer" id="layer-wsRelative" value="wsRelative">
-                    <label for="layer-wsRelative">Wealth Score (Relative)</label>
-                </div>
-                <div class="radio-option" data-layer="comboRelative">
-                    <input type="radio" name="layer" id="layer-comboRelative" value="comboRelative">
-                    <label for="layer-comboRelative">Combined Score (Relative)</label>
-                </div>
-                <div class="radio-option" data-layer="es">
-                    <input type="radio" name="layer" id="layer-es" value="es">
-                    <label for="layer-es">Enrollment Score Quartiles</label>
-                </div>
-                <div class="radio-option" data-layer="ws">
-                    <input type="radio" name="layer" id="layer-ws" value="ws">
-                    <label for="layer-ws">Wealth Score Quartiles</label>
-                </div>
-                <div class="radio-option" data-layer="combo">
-                    <input type="radio" name="layer" id="layer-combo" value="combo">
-                    <label for="layer-combo">Combined Score (ES + WS)</label>
+                <div class="radio-option" data-metric="esWeightedPlus">
+                    <input type="radio" name="metric" id="metric-esWeightedPlus" value="esWeightedPlus">
+                    <label for="metric-esWeightedPlus">ES-Weighted+</label>
                 </div>
             </div>
         </div>
 
-
+        <!-- 4. Display Options -->
         <div class="section">
-            <h2>6. Display Options</h2>
+            <h2>4. Display Options</h2>
             <button id="toggle-boundaries-btn" class="toggle-btn">Hide Boundaries</button>
             <button id="toggle-county-boundaries-btn" class="toggle-btn" style="margin-top: 10px;">Hide County Boundaries</button>
-            <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">
-                County boundaries toggle applies when viewing all counties in a state
-            </p>
-            
+
             <button id="toggle-custom-locations-btn" class="toggle-btn" style="margin-top: 15px;">Show Custom Locations</button>
             <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">
-                Display custom location pins from custom-locations.geojson<br>
-                🟢 Green = Great | 🟠 Orange = Minimal | 🔴 Red = Unacceptable
+                Custom location pins from custom-locations.geojson
             </p>
-            
-            <button id="screenshot-btn" class="toggle-btn" style="margin-top: 15px;">📸 Take Screenshot</button>
-            <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.5rem;">
-                Capture the current map view with preview before downloading
-            </p>
-            
+
+            <button id="screenshot-btn" class="toggle-btn" style="margin-top: 15px;">Take Screenshot</button>
+
             <label for="opacity-slider" style="margin-top: 15px; display: block;">Fill Opacity: <span id="opacity-value">60%</span></label>
             <input type="range" id="opacity-slider" min="0" max="100" value="60" style="width: 100%;">
         </div>
 
+        <!-- Legend -->
         <div class="legend" id="legend">
             <h2>Legend</h2>
             <div id="legend-content"></div>
@@ -420,6 +257,7 @@
     </div>
 
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+    <script src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

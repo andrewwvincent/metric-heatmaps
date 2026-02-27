@@ -1,0 +1,46 @@
+[
+  {
+    "name": "Manhattan Beach",
+    "description": "CA custom map with 301 block groups",
+    "scoresFile": "Custom/Manhattan-Beach-Custom-scores.json",
+    "geojsonFile": "Custom/Manhattan-Beach-Custom.geojson",
+    "blockGroups": 301,
+    "center": [
+      33.826715577602755,
+      -118.355347
+    ]
+  },
+  {
+    "name": "Manhattan Beach",
+    "description": "CA custom map with 301 block groups",
+    "scoresFile": "Custom/Manhattan-Beach-Custom-scores.json",
+    "geojsonFile": "Custom/Manhattan-Beach-Custom.geojson",
+    "blockGroups": 301,
+    "center": [
+      33.826715577602755,
+      -118.355347
+    ]
+  },
+  {
+    "name": "Manhattan Beach V2",
+    "description": "CA custom map with 186 block groups",
+    "scoresFile": "Custom/Manhattan-Beach-V2-Custom-scores.json",
+    "geojsonFile": "Custom/Manhattan-Beach-V2-Custom.geojson",
+    "blockGroups": 186,
+    "center": [
+      33.848814000000004,
+      -118.3733511773475
+    ]
+  },
+  {
+    "name": "Manhattan Beach V2",
+    "description": "CA custom map with 186 block groups",
+    "scoresFile": "Custom/Manhattan-Beach-V2-Custom-scores.json",
+    "geojsonFile": "Custom/Manhattan-Beach-V2-Custom.geojson",
+    "blockGroups": 186,
+    "center": [
+      33.848814000000004,
+      -118.3733511773475
+    ]
+  }
+]
