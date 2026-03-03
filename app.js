@@ -232,15 +232,22 @@ async function loadAvailableCounties() {
 
 function populateStateDropdown() {
     const stateSelect = document.getElementById('state-select');
+    const exportStateSelect = document.getElementById('export-state-select');
     const states = [...new Set(availableCounties.map(c => c.stateCode))].sort();
 
     states.forEach(code => {
         const name = STATE_NAMES[code] || code;
         const count = availableCounties.filter(c => c.stateCode === code).length;
+
         const option = document.createElement('option');
         option.value = code;
         option.textContent = `${name} (${count} counties)`;
         stateSelect.appendChild(option);
+
+        const exportOption = document.createElement('option');
+        exportOption.value = code;
+        exportOption.textContent = name;
+        exportStateSelect.appendChild(exportOption);
     });
 }
 
@@ -464,6 +471,128 @@ function toggleCustomLocations() {
     updateURL();
 }
 
+// --- County Export Screenshot ---
+let exportMap = null;
+let exportLayer = null;
+
+function initExportMap() {
+    if (exportMap) return;
+    exportMap = L.map('export-map', {
+        zoomControl: false,
+        attributionControl: false,
+        dragging: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        boxZoom: false,
+        keyboard: false,
+    }).setView([37.7, -96], 4);
+    // White background — no tile layer
+}
+
+function populateExportCountySelect(stateCode) {
+    const select = document.getElementById('export-county-select');
+    const counties = availableCounties.filter(c => c.stateCode === stateCode)
+        .sort((a, b) => a.name.localeCompare(b.name));
+    select.innerHTML = '<option value="">Select County...</option>';
+    counties.forEach(county => {
+        const opt = document.createElement('option');
+        opt.value = county.countyCode;
+        opt.textContent = county.name;
+        select.appendChild(opt);
+    });
+    select.style.display = 'block';
+    document.getElementById('export-county-btn').disabled = true;
+}
+
+async function generateCountyExport() {
+    const stateCode  = document.getElementById('export-state-select').value;
+    const countyCode = document.getElementById('export-county-select').value;
+    if (!stateCode || !countyCode) return;
+
+    const county = availableCounties.find(c => c.stateCode === stateCode && c.countyCode === countyCode);
+    if (!county) return;
+
+    const btn = document.getElementById('export-county-btn');
+    const status = document.getElementById('export-status');
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+    status.style.display = 'block';
+
+    try {
+        initExportMap();
+
+        // Reuse already-loaded scores if same state, otherwise fetch from Supabase
+        let scores;
+        if (currentStateCode === stateCode && Object.keys(scoreData).length > 0) {
+            scores = scoreData;
+            status.textContent = 'Using cached scores...';
+        } else {
+            status.textContent = 'Fetching scores from Supabase...';
+            scores = await fetchStateScores(stateCode);
+        }
+
+        // Fetch county geometry
+        status.textContent = 'Loading geometry...';
+        const geoResp = await fetch(`data/${county.geojsonFile}`);
+        if (!geoResp.ok) throw new Error('Failed to load geometry');
+        const geoData = await geoResp.json();
+
+        let features;
+        if (geoData.type === 'Topology') {
+            const objectName = Object.keys(geoData.objects)[0];
+            features = topojson.feature(geoData, geoData.objects[objectName]).features || [];
+        } else {
+            features = geoData.features || [];
+        }
+
+        // Clear previous export layer
+        if (exportLayer) exportMap.removeLayer(exportLayer);
+
+        // Style using current metric
+        exportLayer = L.geoJSON({ type: 'FeatureCollection', features }, {
+            style: (feature) => {
+                const geoid = feature.properties.GEOID;
+                const data = scores[geoid];
+                const score = data ? data[currentMetric] : null;
+                const fillColor = getScoreColor(score);
+                if (!fillColor) return { fillColor: '#f1f5f9', weight: 0.5, color: '#e2e8f0', fillOpacity: 0.3 };
+                return { fillColor, weight: 0.5, color: '#ffffff', fillOpacity: 0.85 };
+            }
+        }).addTo(exportMap);
+
+        exportMap.fitBounds(exportLayer.getBounds(), { padding: [20, 20] });
+
+        // Wait for Leaflet to finish rendering
+        status.textContent = 'Rendering...';
+        await new Promise(resolve => setTimeout(resolve, 600));
+
+        // Capture
+        status.textContent = 'Capturing image...';
+        const exportDiv = document.getElementById('export-map');
+        const dataUrl = await domtoimage.toPng(exportDiv, {
+            quality: 1.0,
+            bgcolor: '#ffffff',
+            width: exportDiv.offsetWidth,
+            height: exportDiv.offsetHeight,
+        });
+
+        // Show in modal
+        document.getElementById('screenshot-preview').src = dataUrl;
+        document.getElementById('screenshot-modal').classList.add('active');
+        window.screenshotDataUrl = dataUrl;
+        window.screenshotFilename = `${county.name.replace(/\s+/g, '-')}-${currentMetric}.png`;
+
+        status.textContent = '';
+        status.style.display = 'none';
+    } catch (e) {
+        console.error('Export error:', e);
+        status.textContent = 'Error: ' + e.message;
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generate Screenshot';
+    }
+}
+
 // --- Screenshot ---
 async function takeScreenshot() {
     try {
@@ -485,11 +614,12 @@ async function takeScreenshot() {
 function downloadScreenshot() {
     if (!window.screenshotDataUrl) return;
     const link = document.createElement('a');
-    link.download = `map-screenshot-${new Date().getTime()}.png`;
+    link.download = window.screenshotFilename || `map-screenshot-${new Date().getTime()}.png`;
     link.href = window.screenshotDataUrl;
     link.click();
     document.getElementById('screenshot-modal').classList.remove('active');
     window.screenshotDataUrl = null;
+    window.screenshotFilename = null;
 }
 
 // --- Address Search ---
@@ -608,6 +738,20 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('screenshot-modal').classList.remove('active');
         window.screenshotDataUrl = null;
     });
+
+    // County export
+    document.getElementById('export-state-select').addEventListener('change', (e) => {
+        if (e.target.value) {
+            populateExportCountySelect(e.target.value);
+        } else {
+            document.getElementById('export-county-select').style.display = 'none';
+            document.getElementById('export-county-btn').disabled = true;
+        }
+    });
+    document.getElementById('export-county-select').addEventListener('change', (e) => {
+        document.getElementById('export-county-btn').disabled = !e.target.value;
+    });
+    document.getElementById('export-county-btn').addEventListener('click', generateCountyExport);
 
     // Address search
     document.getElementById('search-button').addEventListener('click', searchAddress);

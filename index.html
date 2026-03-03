@@ -147,6 +147,20 @@
 
         /* Loading progress */
         #loading-progress { display: none; margin-top: 10px; }
+
+        /* Off-screen export map */
+        #export-map {
+            position: fixed;
+            left: -9999px;
+            top: 0;
+            width: 1200px;
+            height: 850px;
+            z-index: -1;
+            background: white;
+        }
+
+        /* Export county select */
+        #export-county-select { display: none; }
     </style>
 </head>
 <body>
@@ -235,6 +249,21 @@
             <input type="range" id="opacity-slider" min="0" max="100" value="60" style="width: 100%;">
         </div>
 
+        <!-- 5. Export County Screenshot -->
+        <div class="section">
+            <h2>5. Export County Screenshot</h2>
+            <label for="export-state-select">State:</label>
+            <select id="export-state-select">
+                <option value="">Select State...</option>
+            </select>
+            <label for="export-county-select">County:</label>
+            <select id="export-county-select">
+                <option value="">Select County...</option>
+            </select>
+            <button id="export-county-btn" disabled>Generate Screenshot</button>
+            <p id="export-status" style="font-size: 0.75rem; color: #6b7280; margin-top: 6px; display: none;"></p>
+        </div>
+
         <!-- Legend -->
         <div class="legend" id="legend">
             <h2>Legend</h2>
@@ -243,6 +272,7 @@
     </div>
 
     <div id="map"></div>
+    <div id="export-map"></div>
 
     <!-- Screenshot Preview Modal -->
     <div id="screenshot-modal">
