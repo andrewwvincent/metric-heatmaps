@@ -10,7 +10,7 @@ let countyBoundaryLayers = [];
 let scoreData = {};
 let currentMetric = 'es_ws_avg';
 let availableCounties = [];
-let boundariesVisible = true;
+let boundariesVisible = false;
 let fillOpacity = 0.6;
 let isMultiCountyMode = false;
 let searchMarkers = [];
@@ -475,6 +475,8 @@ function toggleCustomLocations() {
 let exportMap = null;
 let exportLayer = null;
 
+let exportTileLayer = null;
+
 function initExportMap() {
     if (exportMap) return;
     exportMap = L.map('export-map', {
@@ -486,7 +488,9 @@ function initExportMap() {
         boxZoom: false,
         keyboard: false,
     }).setView([37.7, -96], 4);
-    // White background — no tile layer
+    exportTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 18
+    }).addTo(exportMap);
 }
 
 function populateExportCountySelect(stateCode) {
@@ -572,8 +576,15 @@ async function generateCountyExport() {
         exportMap.invalidateSize();
         exportMap.fitBounds(exportLayer.getBounds(), { padding: [20, 20] });
 
-        // Wait for Leaflet SVG rendering to complete
-        await new Promise(resolve => setTimeout(resolve, 700));
+        // Wait for tiles to finish loading (3s max fallback)
+        overlayText.textContent = 'Loading map tiles...';
+        await new Promise(resolve => {
+            const onLoad = () => { exportTileLayer.off('load', onLoad); resolve(); };
+            exportTileLayer.on('load', onLoad);
+            setTimeout(resolve, 3000);
+        });
+        // Small extra buffer for SVG polygon rendering
+        await new Promise(resolve => setTimeout(resolve, 300));
 
         // Capture
         overlayText.textContent = 'Capturing image...';
