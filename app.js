@@ -1,9 +1,14 @@
+// --- Supabase Config ---
+const SUPABASE_URL = 'https://mnxgkozrutvylzeogphh.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ueGdrb3pydXR2eWx6ZW9ncGhoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkxNTM3MjUsImV4cCI6MjA2NDcyOTcyNX0.SAxTY42F5W_XdA6p7g5fnlunu0yGzNacoBXWTmNj4is';
+const SUPABASE_HEADERS = { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` };
+
 // --- State ---
 let map;
 let currentLayer;
 let countyBoundaryLayers = [];
 let scoreData = {};
-let currentMetric = 'esTrad';
+let currentMetric = 'es_ws_avg';
 let availableCounties = [];
 let boundariesVisible = true;
 let fillOpacity = 0.6;
@@ -81,8 +86,8 @@ function getFeatureStyle(feature) {
 function updateLegend() {
     const content = document.getElementById('legend-content');
     const metricLabels = {
-        esTrad: 'ES-Trad', esTradPlus: 'ES-Trad+',
-        esWeighted: 'ES-Weighted', esWeightedPlus: 'ES-Weighted+'
+        es_ws_avg: 'ES-WS-Avg', esplus_ws_avg: 'ES+-WS-Avg',
+        es_ws_weighted: 'ES-WS-Weighted', esplus_ws_weighted: 'ES+-WS-Weighted'
     };
     const label = metricLabels[currentMetric] || currentMetric;
 
@@ -132,9 +137,14 @@ function loadFromURL() {
         map.setView([parseFloat(lat), parseFloat(lng)], parseFloat(zoom));
     }
 
-    // Metric
-    const metric = params.get('metric');
+    // Metric (map legacy names to new names)
+    const metricAliases = {
+        esTrad: 'es_ws_avg', esTradPlus: 'esplus_ws_avg',
+        esWeighted: 'es_ws_weighted', esWeightedPlus: 'esplus_ws_weighted'
+    };
+    let metric = params.get('metric');
     if (metric) {
+        metric = metricAliases[metric] || metric;
         currentMetric = metric;
         document.querySelectorAll('.radio-option').forEach(opt => {
             if (opt.dataset.metric === metric) {
@@ -191,6 +201,26 @@ function loadFromURL() {
 
         setTimeout(() => loadSelectedCounties(), 300);
     }
+}
+
+// --- Supabase Score Fetching ---
+async function fetchStateScores(stateCode) {
+    const allScores = {};
+    const pageSize = 1000;
+    let offset = 0;
+
+    while (true) {
+        const url = `${SUPABASE_URL}/rest/v1/heatmap_scores?state_fips=eq.${stateCode}` +
+            `&select=geoid,es_ws_avg,esplus_ws_avg,es_ws_weighted,esplus_ws_weighted` +
+            `&limit=${pageSize}&offset=${offset}`;
+        const resp = await fetch(url, { headers: SUPABASE_HEADERS });
+        if (!resp.ok) { console.error('Supabase fetch error:', resp.status); break; }
+        const rows = await resp.json();
+        rows.forEach(row => { allScores[row.geoid] = row; });
+        if (rows.length < pageSize) break;
+        offset += pageSize;
+    }
+    return allScores;
 }
 
 // --- Data Loading ---
@@ -268,6 +298,10 @@ async function loadSelectedCounties() {
     let allFeatures = [];
     let totalLoaded = 0;
 
+    // Fetch all scores for this state from Supabase upfront (one query)
+    progressText.textContent = 'Fetching scores...';
+    scoreData = await fetchStateScores(stateCode);
+
     // Load in batches of 8
     const batchSize = 8;
     for (let i = 0; i < countyCodes.length; i += batchSize) {
@@ -277,15 +311,6 @@ async function loadSelectedCounties() {
             if (!county) return null;
 
             try {
-                // Load scores
-                const scoresResp = await fetch(`data/${county.filename}`);
-                if (!scoresResp.ok) return null;
-                const scores = await scoresResp.json();
-
-                scores.forEach(item => {
-                    scoreData[item.geoid] = item;
-                });
-
                 // Load geometry (TopoJSON or GeoJSON)
                 const geoResp = await fetch(`data/${county.geojsonFile}`);
                 if (!geoResp.ok) return null;
@@ -362,14 +387,10 @@ function showBlockInfo(feature) {
 
     const lines = [
         `GEOID: ${geoid}`,
-        `ES: ${(data.enrollmentScore || 0).toFixed(0)}`,
-        `ES+: ${(data.enrollmentScorePlus || 0).toFixed(0)}`,
-        `WS: ${(data.wealthScore || 0).toFixed(0)}`,
-        `---`,
-        `ES-Trad: ${(data.esTrad || 0).toFixed(3)}`,
-        `ES-Trad+: ${(data.esTradPlus || 0).toFixed(3)}`,
-        `ES-Weighted: ${(data.esWeighted || 0).toFixed(3)}`,
-        `ES-Weighted+: ${(data.esWeightedPlus || 0).toFixed(3)}`
+        `ES-WS-Avg:       ${(data.es_ws_avg || 0).toFixed(3)}`,
+        `ES+-WS-Avg:      ${(data.esplus_ws_avg || 0).toFixed(3)}`,
+        `ES-WS-Weighted:  ${(data.es_ws_weighted || 0).toFixed(3)}`,
+        `ES+-WS-Weighted: ${(data.esplus_ws_weighted || 0).toFixed(3)}`
     ];
     alert(lines.join('\n'));
 }
