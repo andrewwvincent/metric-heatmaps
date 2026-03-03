@@ -559,8 +559,8 @@ async function generateCountyExport() {
                 const data = scores[geoid];
                 const score = data ? data[currentMetric] : null;
                 const fillColor = getScoreColor(score);
-                if (!fillColor) return { fillColor: '#f1f5f9', weight: 0.5, color: '#e2e8f0', fillOpacity: 0.3 };
-                return { fillColor, weight: 0.5, color: '#ffffff', fillOpacity: 0.85 };
+                if (!fillColor) return { fillColor: '#f1f5f9', weight: 0, opacity: 0, fillOpacity: 0.3 };
+                return { fillColor, weight: 0, opacity: 0, fillOpacity: 0.85 };
             }
         }).addTo(exportMap);
 
