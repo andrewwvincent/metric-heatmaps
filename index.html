@@ -148,16 +148,37 @@
         /* Loading progress */
         #loading-progress { display: none; margin-top: 10px; }
 
-        /* Off-screen export map */
+        /* Export map — hidden off-screen normally, brought on-screen during capture */
         #export-map {
             position: fixed;
             left: -9999px;
             top: 0;
             width: 1200px;
             height: 850px;
-            z-index: -1;
             background: white;
+            z-index: 1;
         }
+        #export-map.rendering {
+            left: 0;
+            z-index: 9998;
+        }
+
+        /* Overlay shown while export map is rendering */
+        #export-rendering-overlay {
+            display: none;
+            position: fixed;
+            left: 0; top: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.75);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 16px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        #export-rendering-overlay.active { display: flex; }
 
         /* Export county select */
         #export-county-select { display: none; }
@@ -273,6 +294,9 @@
 
     <div id="map"></div>
     <div id="export-map"></div>
+    <div id="export-rendering-overlay">
+        <p id="export-overlay-text">Rendering county map...</p>
+    </div>
 
     <!-- Screenshot Preview Modal -->
     <div id="screenshot-modal">

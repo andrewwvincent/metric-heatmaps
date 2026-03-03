@@ -560,21 +560,33 @@ async function generateCountyExport() {
             }
         }).addTo(exportMap);
 
+        // Bring map on-screen (Leaflet needs to be in the viewport to render SVG correctly)
+        const exportDiv = document.getElementById('export-map');
+        const overlay = document.getElementById('export-rendering-overlay');
+        const overlayText = document.getElementById('export-overlay-text');
+        overlayText.textContent = 'Rendering county map...';
+        overlay.classList.add('active');
+        exportDiv.classList.add('rendering');
+
+        // Let Leaflet recalculate its size and fit bounds now that it's visible
+        exportMap.invalidateSize();
         exportMap.fitBounds(exportLayer.getBounds(), { padding: [20, 20] });
 
-        // Wait for Leaflet to finish rendering
-        status.textContent = 'Rendering...';
-        await new Promise(resolve => setTimeout(resolve, 600));
+        // Wait for Leaflet SVG rendering to complete
+        await new Promise(resolve => setTimeout(resolve, 700));
 
         // Capture
-        status.textContent = 'Capturing image...';
-        const exportDiv = document.getElementById('export-map');
+        overlayText.textContent = 'Capturing image...';
         const dataUrl = await domtoimage.toPng(exportDiv, {
             quality: 1.0,
             bgcolor: '#ffffff',
             width: exportDiv.offsetWidth,
             height: exportDiv.offsetHeight,
         });
+
+        // Return map off-screen and hide overlay
+        exportDiv.classList.remove('rendering');
+        overlay.classList.remove('active');
 
         // Show in modal
         document.getElementById('screenshot-preview').src = dataUrl;
@@ -587,6 +599,8 @@ async function generateCountyExport() {
     } catch (e) {
         console.error('Export error:', e);
         status.textContent = 'Error: ' + e.message;
+        document.getElementById('export-map').classList.remove('rendering');
+        document.getElementById('export-rendering-overlay').classList.remove('active');
     } finally {
         btn.disabled = false;
         btn.textContent = 'Generate Screenshot';
