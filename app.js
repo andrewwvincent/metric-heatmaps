@@ -799,12 +799,14 @@ function showListingsPanel(property, listings) {
     const metersToMin = m => m != null ? `${Math.round(m / 80)} min walk` : null;
     const propLat = property.location_geopoint_latitude;
     const propLon = property.location_geopoint_longitude;
-    const parkHtml = property.nearest_park_name
-        ? `<div class="park-row park-clickable" id="panel-park-row">🌳 ${property.nearest_park_name}${metersToMin(property.nearest_park_meters) ? ` · ${metersToMin(property.nearest_park_meters)}` : ''}</div>`
-        : `<div class="park-row park-na">🌳 No nearby park data</div>`;
-    const playHtml = property.nearest_playground_name
-        ? `<div class="park-row park-clickable" id="panel-play-row">🛝 ${property.nearest_playground_name}${metersToMin(property.nearest_playground_meters) ? ` · ${metersToMin(property.nearest_playground_meters)}` : ''}</div>`
-        : `<div class="park-row park-na">🛝 No nearby playground data</div>`;
+    const buildParkHtml = (icon, id, name, meters) => {
+        const dist = metersToMin(meters);
+        if (name) return `<div class="park-row park-clickable" id="${id}">${icon} ${name}${dist ? ` · ${dist}` : ''}</div>`;
+        if (dist) return `<div class="park-row">${icon} Unnamed${` · ${dist}`}</div>`;
+        return `<div class="park-row park-na">${icon} No nearby data</div>`;
+    };
+    const parkHtml = buildParkHtml('🌳', 'panel-park-row', property.nearest_park_name, property.nearest_park_meters);
+    const playHtml = buildParkHtml('🛝', 'panel-play-row', property.nearest_playground_name, property.nearest_playground_meters);
 
     // --- Listings section ---
     const listingCards = listings.map(l => {
