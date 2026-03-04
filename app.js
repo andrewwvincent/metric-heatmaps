@@ -32,6 +32,8 @@ let moodysListings = {};
 let moodysContacts = {};
 let moodysAnalysis = {};
 let moodysFetchedKey = null;
+let parkLine = null;
+let parkMarker = null;
 
 const STATE_NAMES = {
     '01': 'Alabama', '02': 'Alaska', '04': 'Arizona', '05': 'Arkansas', '06': 'California',
@@ -68,6 +70,14 @@ function getScoreColor(score) {
     if (score >= 0.50) return '#f97316'; // Orange
     if (score >= 0.25) return '#eab308'; // Yellow
     return '#3b82f6'; // Blue (0.10 - 0.25)
+}
+
+// Panel scores use inverted color scale: high = good (green), low = bad (red)
+function getPanelScoreColor(score) {
+    if (score == null) return null;
+    if (score >= 0.75) return '#22c55e'; // Green
+    if (score >= 0.50) return '#eab308'; // Yellow
+    return '#ef4444';                     // Red
 }
 
 function getFeatureStyle(feature) {
@@ -758,7 +768,7 @@ function showListingsPanel(property, listings) {
     };
     const scoreRows = Object.entries(metricLabels).map(([key, label]) => {
         const val = scores ? scores[key] : null;
-        const color = val != null ? getScoreColor(val) : null;
+        const color = val != null ? getPanelScoreColor(val) : null;
         const badge = color
             ? `<span class="score-badge" style="background:${color}">${val.toFixed(2)}</span>`
             : `<span class="score-badge score-na">N/A</span>`;
@@ -768,26 +778,32 @@ function showListingsPanel(property, listings) {
     // --- bg_analysis fields ---
     const bgAnalysis = moodysAnalysis[property.bg_geoid];
     const analysisFields = [
-        { key: 'neighborhood_score', label: 'Neighborhood Score' },
-        { key: 'industrial_risk',    label: 'Industrial Risk' },
+        { key: 'neighborhood_score', label: 'Neighborhood Score', bold: true },
+        { key: 'industrial_risk',    label: 'Low Industrial Risk', note: 'higher = less industrial' },
         { key: 'area_quality',       label: 'Area Quality' },
         { key: 'prestige',           label: 'Prestige' },
     ];
-    const analysisRows = analysisFields.map(({ key, label }) => {
+    const analysisRows = analysisFields.map(({ key, label, bold, note }) => {
         const val = bgAnalysis ? bgAnalysis[key] : null;
-        const badge = val != null
-            ? `<span class="score-badge" style="background:${getScoreColor(val) || '#6b7280'}">${typeof val === 'number' ? val.toFixed(2) : val}</span>`
+        const color = val != null ? getPanelScoreColor(val) : null;
+        const badge = color
+            ? `<span class="score-badge" style="background:${color}">${typeof val === 'number' ? val.toFixed(2) : val}</span>`
             : `<span class="score-badge score-na">N/A</span>`;
-        return `<div class="score-row"><span class="score-label">${label}</span>${badge}</div>`;
+        const labelHtml = bold
+            ? `<span class="score-label" style="font-weight:700">${label}</span>`
+            : `<span class="score-label">${label}${note ? ` <span style="font-size:10px;opacity:0.6">(${note})</span>` : ''}</span>`;
+        return `<div class="score-row">${labelHtml}${badge}</div>`;
     }).join('');
 
     // --- Park section ---
     const metersToMin = m => m != null ? `${Math.round(m / 80)} min walk` : null;
-    const parkLine = property.nearest_park_name
-        ? `<div class="park-row">🌳 ${property.nearest_park_name}${metersToMin(property.nearest_park_meters) ? ` · ${metersToMin(property.nearest_park_meters)}` : ''}</div>`
+    const propLat = property.location_geopoint_latitude;
+    const propLon = property.location_geopoint_longitude;
+    const parkHtml = property.nearest_park_name
+        ? `<div class="park-row park-clickable" id="panel-park-row">🌳 ${property.nearest_park_name}${metersToMin(property.nearest_park_meters) ? ` · ${metersToMin(property.nearest_park_meters)}` : ''}</div>`
         : `<div class="park-row park-na">🌳 No nearby park data</div>`;
-    const playLine = property.nearest_playground_name
-        ? `<div class="park-row">🛝 ${property.nearest_playground_name}${metersToMin(property.nearest_playground_meters) ? ` · ${metersToMin(property.nearest_playground_meters)}` : ''}</div>`
+    const playHtml = property.nearest_playground_name
+        ? `<div class="park-row park-clickable" id="panel-play-row">🛝 ${property.nearest_playground_name}${metersToMin(property.nearest_playground_meters) ? ` · ${metersToMin(property.nearest_playground_meters)}` : ''}</div>`
         : `<div class="park-row park-na">🛝 No nearby playground data</div>`;
 
     // --- Listings section ---
@@ -831,7 +847,7 @@ function showListingsPanel(property, listings) {
         </div>
         <div class="panel-section">
             <div class="panel-section-title">Nearby Outdoor Space</div>
-            ${parkLine}${playLine}
+            ${parkHtml}${playHtml}
         </div>
         <div class="panel-section">
             <div class="panel-section-title">${listings.length} Available Listing${listings.length !== 1 ? 's' : ''}</div>
@@ -840,10 +856,55 @@ function showListingsPanel(property, listings) {
     `;
 
     document.getElementById('listings-panel').classList.add('active');
+
+    // Attach park/playground click listeners
+    const parkRowEl = document.getElementById('panel-park-row');
+    if (parkRowEl && property.nearest_park_name) {
+        parkRowEl.addEventListener('click', () =>
+            showParkOnMap(property.nearest_park_name, propLat, propLon));
+    }
+    const playRowEl = document.getElementById('panel-play-row');
+    if (playRowEl && property.nearest_playground_name) {
+        playRowEl.addEventListener('click', () =>
+            showParkOnMap(property.nearest_playground_name, propLat, propLon));
+    }
 }
 
 function closeListingsPanel() {
     document.getElementById('listings-panel').classList.remove('active');
+    clearParkLine();
+}
+
+function clearParkLine() {
+    if (parkLine) { map.removeLayer(parkLine); parkLine = null; }
+    if (parkMarker) { map.removeLayer(parkMarker); parkMarker = null; }
+}
+
+async function geocodeParkName(name, nearLat, nearLon) {
+    const delta = 0.3;
+    const viewbox = `${nearLon - delta},${nearLat + delta},${nearLon + delta},${nearLat - delta}`;
+    const url = `https://nominatim.openstreetmap.org/search?` +
+        `q=${encodeURIComponent(name)}&format=json&limit=1&bounded=1&viewbox=${viewbox}`;
+    try {
+        const resp = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        if (!resp.ok) return null;
+        const results = await resp.json();
+        return results.length ? { lat: parseFloat(results[0].lat), lon: parseFloat(results[0].lon) } : null;
+    } catch { return null; }
+}
+
+async function showParkOnMap(name, propLat, propLon) {
+    clearParkLine();
+    const coords = await geocodeParkName(name, propLat, propLon);
+    if (!coords) return;
+    parkMarker = L.circleMarker([coords.lat, coords.lon], {
+        radius: 9, color: '#fff', weight: 2,
+        fillColor: '#22c55e', fillOpacity: 0.9
+    }).bindTooltip(name, { permanent: false }).addTo(map);
+    parkLine = L.polyline([[propLat, propLon], [coords.lat, coords.lon]], {
+        color: '#22c55e', weight: 2.5, dashArray: '6,5', opacity: 0.85
+    }).addTo(map);
+    map.fitBounds([[propLat, propLon], [coords.lat, coords.lon]], { padding: [80, 80] });
 }
 
 // --- County Export Screenshot ---
