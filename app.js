@@ -29,6 +29,7 @@ let moodysVisible = false;
 let moodysLayer = null;
 let moodysProperties = [];
 let moodysListings = {};
+let moodysContacts = {};
 let moodysFetchedKey = null;
 
 const STATE_NAMES = {
@@ -409,9 +410,10 @@ async function loadSelectedCounties() {
     if (moodysVisible) {
         const fetchKey = currentStateCode + [...loadedCounties].sort().join(',');
         if (moodysFetchedKey !== fetchKey) {
-            const { properties, listings } = await fetchMoodysData(currentStateCode, loadedCounties);
+            const { properties, listings, contacts } = await fetchMoodysData(currentStateCode, loadedCounties);
             moodysProperties = properties;
             moodysListings = listings;
+            moodysContacts = contacts;
             moodysFetchedKey = fetchKey;
         }
         displayMoodysMarkers();
@@ -570,10 +572,10 @@ async function toggleSchoolClosures() {
 // --- Moody's Listings ---
 const moodysIcon = L.divIcon({
     className: '',
-    html: '<div style="width:10px;height:10px;background:#0ea5e9;border:2px solid #fff;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div>',
-    iconSize: [10, 10],
-    iconAnchor: [5, 5],
-    popupAnchor: [0, -7]
+    html: '<div style="width:18px;height:18px;background:#0ea5e9;border:3px solid #fff;border-radius:50%;box-shadow:0 1px 5px rgba(0,0,0,0.5);"></div>',
+    iconSize: [18, 18],
+    iconAnchor: [9, 9],
+    popupAnchor: [0, -11]
 });
 
 async function fetchMoodysData(stateCode, countyCodes) {
@@ -582,7 +584,7 @@ async function fetchMoodysData(stateCode, countyCodes) {
     // Build OR filter: bg_geoid.like.12086%25,bg_geoid.like.12011%25
     const orParts = countyCodes.map(cc => `bg_geoid.like.${stateCode + cc}%25`).join(',');
 
-    // Fetch properties with pagination
+    // Fetch properties with pagination (include park fields)
     const properties = [];
     const pageSize = 2000;
     let offset = 0;
@@ -590,7 +592,8 @@ async function fetchMoodysData(stateCode, countyCodes) {
         const url = `${SUPABASE_URL}/rest/v1/moodys_property` +
             `?or=(${orParts})` +
             `&select=property_source_key,property_name,property_standardized_address,` +
-            `location_geopoint_latitude,location_geopoint_longitude,bg_geoid,category` +
+            `location_geopoint_latitude,location_geopoint_longitude,bg_geoid,category,` +
+            `nearest_park_name,nearest_park_meters,nearest_playground_name,nearest_playground_meters` +
             `&limit=${pageSize}&offset=${offset}`;
         const resp = await fetch(url, { headers: SUPABASE_HEADERS });
         if (!resp.ok) { console.error('Moodys properties error:', resp.status); break; }
@@ -602,20 +605,20 @@ async function fetchMoodysData(stateCode, countyCodes) {
 
     if (btn) btn.textContent = `Loading listings for ${properties.length} properties...`;
 
-    // Batch-fetch AVAILABLE listings for all properties in parallel (100 keys per batch)
+    // Batch-fetch AVAILABLE listings (include listed_space_id for contacts join)
     const listings = {};
     const keys = properties.map(p => p.property_source_key);
     const batchSize = 100;
-    const fetchPromises = [];
+    const listingPromises = [];
 
     for (let i = 0; i < keys.length; i += batchSize) {
         const batch = keys.slice(i, i + batchSize);
-        fetchPromises.push(
+        listingPromises.push(
             fetch(
                 `${SUPABASE_URL}/rest/v1/moodys_listings` +
                 `?property_source_key=in.(${batch.join(',')})` +
                 `&listed_space_availability_status=eq.AVAILABLE` +
-                `&select=property_source_key,space_size_available,space_category,` +
+                `&select=property_source_key,listed_space_id,space_size_available,space_category,` +
                 `space_suite,listed_space_type,lease_asking_rent_general_price_average_amount,` +
                 `lease_asking_rent_general_price_period,lease_asking_rent_general_price_size` +
                 `&limit=1000`,
@@ -628,9 +631,35 @@ async function fetchMoodysData(stateCode, countyCodes) {
             })
         );
     }
-    await Promise.all(fetchPromises);
+    await Promise.all(listingPromises);
 
-    return { properties, listings };
+    // Collect all listed_space_ids and batch-fetch broker contacts
+    if (btn) btn.textContent = 'Loading broker contacts...';
+    const contacts = {};
+    const listingIds = [...new Set(
+        Object.values(listings).flat().map(l => l.listed_space_id).filter(Boolean)
+    )];
+    const contactPromises = [];
+    for (let i = 0; i < listingIds.length; i += batchSize) {
+        const batch = listingIds.slice(i, i + batchSize);
+        contactPromises.push(
+            fetch(
+                `${SUPABASE_URL}/rest/v1/moodys_property_contacts` +
+                `?listed_space_id=in.(${batch.join(',')})` +
+                `&select=listed_space_id,contact_name,contact_role,contact_company_name` +
+                `&limit=1000`,
+                { headers: SUPABASE_HEADERS }
+            ).then(r => r.ok ? r.json() : []).then(rows => {
+                rows.forEach(row => {
+                    if (!contacts[row.listed_space_id]) contacts[row.listed_space_id] = [];
+                    contacts[row.listed_space_id].push(row);
+                });
+            })
+        );
+    }
+    await Promise.all(contactPromises);
+
+    return { properties, listings, contacts };
 }
 
 function displayMoodysMarkers() {
@@ -678,9 +707,10 @@ async function toggleMoodys() {
         if (moodysFetchedKey !== fetchKey) {
             btn.textContent = 'Loading properties...';
             btn.disabled = true;
-            const { properties, listings } = await fetchMoodysData(currentStateCode, loadedCounties);
+            const { properties, listings, contacts } = await fetchMoodysData(currentStateCode, loadedCounties);
             moodysProperties = properties;
             moodysListings = listings;
+            moodysContacts = contacts;
             moodysFetchedKey = fetchKey;
             btn.disabled = false;
             btn.textContent = "Hide Moody's Listings";
@@ -696,14 +726,47 @@ function showListingsPanel(property, listings) {
     document.getElementById('listings-panel-count').textContent =
         `${listings.length} available listing${listings.length !== 1 ? 's' : ''}`;
 
-    const body = document.getElementById('listings-panel-body');
-    body.innerHTML = listings.map(l => {
+    // --- Scores section ---
+    const scores = scoreData[property.bg_geoid];
+    const metricLabels = {
+        es_ws_avg: 'ES-WS-Avg', esplus_ws_avg: 'ES+-WS-Avg',
+        es_ws_weighted: 'ES-WS-Weighted', esplus_ws_weighted: 'ES+-WS-Weighted'
+    };
+    const scoreRows = Object.entries(metricLabels).map(([key, label]) => {
+        const val = scores ? scores[key] : null;
+        const color = val != null ? getScoreColor(val) : null;
+        const badge = color
+            ? `<span class="score-badge" style="background:${color}">${val.toFixed(2)}</span>`
+            : `<span class="score-badge score-na">N/A</span>`;
+        return `<div class="score-row"><span class="score-label">${label}</span>${badge}</div>`;
+    }).join('');
+
+    // --- Park section ---
+    const metersToMin = m => m != null ? `${Math.round(m / 80)} min walk` : null;
+    const parkLine = property.nearest_park_name
+        ? `<div class="park-row">🌳 ${property.nearest_park_name}${metersToMin(property.nearest_park_meters) ? ` · ${metersToMin(property.nearest_park_meters)}` : ''}</div>`
+        : `<div class="park-row park-na">🌳 No nearby park data</div>`;
+    const playLine = property.nearest_playground_name
+        ? `<div class="park-row">🛝 ${property.nearest_playground_name}${metersToMin(property.nearest_playground_meters) ? ` · ${metersToMin(property.nearest_playground_meters)}` : ''}</div>`
+        : `<div class="park-row park-na">🛝 No nearby playground data</div>`;
+
+    // --- Listings section ---
+    const listingCards = listings.map(l => {
         const sqft = l.space_size_available != null
             ? `${Number(l.space_size_available).toLocaleString()} sq ft`
             : 'Size N/A';
         const rent = l.lease_asking_rent_general_price_average_amount != null
             ? `$${l.lease_asking_rent_general_price_average_amount} / SF / ${l.lease_asking_rent_general_price_period || 'yr'}`
             : null;
+        const listingContacts = l.listed_space_id ? (moodysContacts[l.listed_space_id] || []) : [];
+        const contactHtml = listingContacts.length > 0
+            ? listingContacts.map(c => `
+                <div class="contact-row">
+                    <span class="contact-name">${c.contact_name || ''}</span>
+                    ${c.contact_role ? `<span class="contact-role">${c.contact_role.replace('_', ' ')}</span>` : ''}
+                    ${c.contact_company_name ? `<span class="contact-company">${c.contact_company_name}</span>` : ''}
+                </div>`).join('')
+            : '';
 
         return `<div class="listing-card">
             <div class="listing-card-header">
@@ -713,8 +776,24 @@ function showListingsPanel(property, listings) {
             ${l.space_category ? `<p class="listing-meta">${l.space_category}</p>` : ''}
             <p class="listing-size">${sqft}</p>
             ${rent ? `<p class="listing-rent">${rent}</p>` : ''}
+            ${contactHtml ? `<div class="listing-contacts">${contactHtml}</div>` : ''}
         </div>`;
     }).join('');
+
+    document.getElementById('listings-panel-body').innerHTML = `
+        <div class="panel-section">
+            <div class="panel-section-title">Demographics Scores</div>
+            ${scoreRows}
+        </div>
+        <div class="panel-section">
+            <div class="panel-section-title">Nearby Outdoor Space</div>
+            ${parkLine}${playLine}
+        </div>
+        <div class="panel-section">
+            <div class="panel-section-title">${listings.length} Available Listing${listings.length !== 1 ? 's' : ''}</div>
+            ${listingCards}
+        </div>
+    `;
 
     document.getElementById('listings-panel').classList.add('active');
 }
