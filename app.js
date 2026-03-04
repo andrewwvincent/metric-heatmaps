@@ -20,6 +20,10 @@ let customLocationsVisible = false;
 let customLocationsData = null;
 let currentStateCode = null;
 let loadedCounties = [];
+let schoolClosuresLayer = null;
+let schoolClosuresVisible = false;
+let schoolClosuresData = [];
+let schoolClosuresFetchedState = null;
 
 const STATE_NAMES = {
     '01': 'Alabama', '02': 'Alaska', '04': 'Arizona', '05': 'Arkansas', '06': 'California',
@@ -385,6 +389,15 @@ async function loadSelectedCounties() {
     status.textContent = `Loaded ${loadedCounties.length} counties (${Object.keys(scoreData).length} block groups)`;
     status.style.backgroundColor = '#dcfce7';
     status.style.color = '#166534';
+
+    // Refresh school closures overlay if visible (re-filter for newly loaded counties)
+    if (schoolClosuresVisible) {
+        if (schoolClosuresFetchedState !== stateCode) {
+            schoolClosuresData = await fetchSchoolClosures(stateCode);
+            schoolClosuresFetchedState = stateCode;
+        }
+        displaySchoolClosures();
+    }
 }
 
 function showBlockInfo(feature) {
@@ -469,6 +482,71 @@ function toggleCustomLocations() {
     document.getElementById('toggle-custom-locations-btn').textContent =
         customLocationsVisible ? 'Hide Custom Locations' : 'Show Custom Locations';
     updateURL();
+}
+
+// --- School Closures ---
+const schoolClosureIcon = L.divIcon({
+    className: '',
+    html: '<div style="width:12px;height:12px;background:#7c3aed;border:2px solid #fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div>',
+    iconSize: [12, 12],
+    iconAnchor: [6, 6],
+    popupAnchor: [0, -8]
+});
+
+async function fetchSchoolClosures(stateCode) {
+    const url = `${SUPABASE_URL}/rest/v1/school_closure_schools` +
+        `?block_group_geoid=like.${stateCode}%` +
+        `&select=school_name,address,district_name,status,closure_date,lat,lon,block_group_geoid`;
+    const resp = await fetch(url, { headers: SUPABASE_HEADERS });
+    if (!resp.ok) { console.error('School closures fetch error:', resp.status); return []; }
+    return await resp.json();
+}
+
+function displaySchoolClosures() {
+    if (schoolClosuresLayer) { map.removeLayer(schoolClosuresLayer); schoolClosuresLayer = null; }
+    if (!schoolClosuresVisible || schoolClosuresData.length === 0 || loadedCounties.length === 0) return;
+
+    // Only show schools whose county is currently loaded (first 5 chars of geoid = state+county FIPS)
+    const loadedPrefixes = new Set(loadedCounties.map(cc => currentStateCode + cc));
+
+    const markers = schoolClosuresData
+        .filter(s => s.block_group_geoid && loadedPrefixes.has(s.block_group_geoid.substring(0, 5)))
+        .map(s => {
+            if (!s.lat || !s.lon) return null;
+            const marker = L.marker([s.lat, s.lon], { icon: schoolClosureIcon });
+            marker.bindPopup(`
+                <div style="min-width: 200px;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 1rem;">${s.school_name || 'Unknown School'}</h3>
+                    ${s.address ? `<p style="margin: 4px 0; font-size: 0.875rem; color: #444;">${s.address}</p>` : ''}
+                    ${s.district_name ? `<p style="margin: 4px 0; font-size: 0.875rem; color: #666;">${s.district_name}</p>` : ''}
+                    ${s.status ? `<p style="margin: 4px 0; font-size: 0.875rem;"><strong>Status:</strong> ${s.status}</p>` : ''}
+                    ${s.closure_date ? `<p style="margin: 4px 0; font-size: 0.875rem;"><strong>Closed:</strong> ${s.closure_date}</p>` : ''}
+                </div>
+            `);
+            return marker;
+        })
+        .filter(Boolean);
+
+    schoolClosuresLayer = L.layerGroup(markers).addTo(map);
+}
+
+async function toggleSchoolClosures() {
+    schoolClosuresVisible = !schoolClosuresVisible;
+    const btn = document.getElementById('toggle-school-closures-btn');
+    btn.textContent = schoolClosuresVisible ? 'Hide School Closures' : 'Show School Closures';
+
+    if (schoolClosuresVisible && currentStateCode) {
+        if (schoolClosuresFetchedState !== currentStateCode) {
+            btn.textContent = 'Loading...';
+            btn.disabled = true;
+            schoolClosuresData = await fetchSchoolClosures(currentStateCode);
+            schoolClosuresFetchedState = currentStateCode;
+            btn.disabled = false;
+            btn.textContent = 'Hide School Closures';
+        }
+    }
+
+    displaySchoolClosures();
 }
 
 // --- County Export Screenshot ---
@@ -747,6 +825,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Custom locations toggle
     document.getElementById('toggle-custom-locations-btn').addEventListener('click', toggleCustomLocations);
+
+    // School closures toggle
+    document.getElementById('toggle-school-closures-btn').addEventListener('click', toggleSchoolClosures);
 
     // Opacity slider
     document.getElementById('opacity-slider').addEventListener('input', (e) => {
