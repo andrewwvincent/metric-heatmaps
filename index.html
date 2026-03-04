@@ -405,6 +405,15 @@
                 <p style="font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem;">Only shows properties with available listings</p>
             </div>
 
+            <div style="margin-top: 12px; border-top: 1px solid #e2e8f0; padding-top: 10px;">
+                <p style="font-size: 0.75rem; color: #64748b; margin: 0 0 6px 0; font-weight: 600;">CSV Pin Upload</p>
+                <input type="file" id="csv-file-input" accept=".csv" style="display:none">
+                <button class="toggle-btn" onclick="document.getElementById('csv-file-input').click()">Upload CSV</button>
+                <p style="font-size: 0.7rem; color: #94a3b8; margin-top: 4px 0 2px 0;">Columns: address, lat, lon</p>
+                <p id="csv-status" style="font-size: 0.72rem; color: #475569; margin-top: 4px; min-height: 1em;"></p>
+                <button id="csv-clear-btn" class="toggle-btn" style="display:none; margin-top: 2px;">Clear CSV Pins</button>
+            </div>
+
             <button id="screenshot-btn" class="toggle-btn" style="margin-top: 15px;">Take Screenshot</button>
 
             <label for="opacity-slider" style="margin-top: 15px; display: block;">Fill Opacity: <span id="opacity-value">60%</span></label>

@@ -754,19 +754,14 @@ async function toggleMoodys() {
     displayMoodysMarkers();
 }
 
-function showListingsPanel(property, listings) {
-    document.getElementById('listings-panel-title').textContent = property.property_name || 'Property';
-    document.getElementById('listings-panel-address').textContent = property.property_standardized_address || '';
-    document.getElementById('listings-panel-count').textContent =
-        `${listings.length} available listing${listings.length !== 1 ? 's' : ''}`;
+// --- Panel HTML builders (shared by Moodys and CSV panels) ---
 
-    // --- Scores section ---
-    const scores = scoreData[property.bg_geoid];
+function buildScoreSectionHtml(scores) {
     const metricLabels = {
         es_ws_avg: 'ES-WS-Avg', esplus_ws_avg: 'ES+-WS-Avg',
         es_ws_weighted: 'ES-WS-Weighted', esplus_ws_weighted: 'ES+-WS-Weighted'
     };
-    const scoreRows = Object.entries(metricLabels).map(([key, label]) => {
+    const rows = Object.entries(metricLabels).map(([key, label]) => {
         const val = scores ? scores[key] : null;
         const color = val != null ? getPanelScoreColor(val) : null;
         const badge = color
@@ -774,16 +769,17 @@ function showListingsPanel(property, listings) {
             : `<span class="score-badge score-na">N/A</span>`;
         return `<div class="score-row"><span class="score-label">${label}</span>${badge}</div>`;
     }).join('');
+    return `<div class="panel-section"><div class="panel-section-title">Demographics Scores</div>${rows}</div>`;
+}
 
-    // --- bg_analysis fields ---
-    const bgAnalysis = moodysAnalysis[property.bg_geoid];
-    const analysisFields = [
+function buildAnalysisSectionHtml(bgAnalysis) {
+    const fields = [
         { key: 'neighborhood_score', label: 'Neighborhood Score', bold: true },
         { key: 'industrial_risk',    label: 'Low Industrial Risk', note: 'higher = less industrial' },
         { key: 'area_quality',       label: 'Area Quality' },
         { key: 'prestige',           label: 'Prestige' },
     ];
-    const analysisRows = analysisFields.map(({ key, label, bold, note }) => {
+    const rows = fields.map(({ key, label, bold, note }) => {
         const val = bgAnalysis ? bgAnalysis[key] : null;
         const color = val != null ? getPanelScoreColor(val) : null;
         const badge = color
@@ -794,38 +790,36 @@ function showListingsPanel(property, listings) {
             : `<span class="score-label">${label}${note ? ` <span style="font-size:10px;opacity:0.6">(${note})</span>` : ''}</span>`;
         return `<div class="score-row">${labelHtml}${badge}</div>`;
     }).join('');
+    return `<div class="panel-section"><div class="panel-section-title">Neighborhood Analysis</div>${rows}</div>`;
+}
 
-    // --- Park section ---
+function buildParkSectionHtml(property) {
     const metersToMin = m => m != null ? `${Math.round(m / 80)} min walk` : null;
-    const propLat = property.location_geopoint_latitude;
-    const propLon = property.location_geopoint_longitude;
-    const buildParkHtml = (icon, id, name, meters) => {
+    const mkRow = (icon, id, name, meters) => {
         const dist = metersToMin(meters);
         if (name) return `<div class="park-row park-clickable" id="${id}">${icon} ${name}${dist ? ` · ${dist}` : ''}</div>`;
-        if (dist) return `<div class="park-row">${icon} Unnamed${` · ${dist}`}</div>`;
+        if (dist) return `<div class="park-row">${icon} Unnamed · ${dist}</div>`;
         return `<div class="park-row park-na">${icon} No nearby data</div>`;
     };
-    const parkHtml = buildParkHtml('🌳', 'panel-park-row', property.nearest_park_name, property.nearest_park_meters);
-    const playHtml = buildParkHtml('🛝', 'panel-play-row', property.nearest_playground_name, property.nearest_playground_meters);
+    return `<div class="panel-section"><div class="panel-section-title">Nearby Outdoor Space</div>` +
+        mkRow('🌳', 'panel-park-row', property.nearest_park_name, property.nearest_park_meters) +
+        mkRow('🛝', 'panel-play-row', property.nearest_playground_name, property.nearest_playground_meters) +
+        `</div>`;
+}
 
-    // --- Listings section ---
-    const listingCards = listings.map(l => {
+function buildListingsSectionHtml(listings, contacts) {
+    const cards = listings.map(l => {
         const sqft = l.space_size_available != null
-            ? `${Number(l.space_size_available).toLocaleString()} sq ft`
-            : 'Size N/A';
+            ? `${Number(l.space_size_available).toLocaleString()} sq ft` : 'Size N/A';
         const rent = l.lease_asking_rent_general_price_average_amount != null
-            ? `$${l.lease_asking_rent_general_price_average_amount} / SF / ${l.lease_asking_rent_general_price_period || 'yr'}`
-            : null;
-        const listingContacts = l.listed_space_id ? (moodysContacts[l.listed_space_id] || []) : [];
-        const contactHtml = listingContacts.length > 0
-            ? listingContacts.map(c => `
-                <div class="contact-row">
-                    <span class="contact-name">${c.contact_name || ''}</span>
-                    ${c.contact_role ? `<span class="contact-role">${c.contact_role.replace('_', ' ')}</span>` : ''}
-                    ${c.contact_company_name ? `<span class="contact-company">${c.contact_company_name}</span>` : ''}
-                </div>`).join('')
-            : '';
-
+            ? `$${l.lease_asking_rent_general_price_average_amount} / SF / ${l.lease_asking_rent_general_price_period || 'yr'}` : null;
+        const listingContacts = l.listed_space_id ? (contacts[l.listed_space_id] || []) : [];
+        const contactHtml = listingContacts.map(c => `
+            <div class="contact-row">
+                <span class="contact-name">${c.contact_name || ''}</span>
+                ${c.contact_role ? `<span class="contact-role">${c.contact_role.replace('_', ' ')}</span>` : ''}
+                ${c.contact_company_name ? `<span class="contact-company">${c.contact_company_name}</span>` : ''}
+            </div>`).join('');
         return `<div class="listing-card">
             <div class="listing-card-header">
                 <span class="listing-type-badge">${l.listed_space_type || 'LEASE'}</span>
@@ -837,39 +831,234 @@ function showListingsPanel(property, listings) {
             ${contactHtml ? `<div class="listing-contacts">${contactHtml}</div>` : ''}
         </div>`;
     }).join('');
+    return `<div class="panel-section">
+        <div class="panel-section-title">${listings.length} Available Listing${listings.length !== 1 ? 's' : ''}</div>
+        ${cards}
+    </div>`;
+}
 
-    document.getElementById('listings-panel-body').innerHTML = `
-        <div class="panel-section">
-            <div class="panel-section-title">Demographics Scores</div>
-            ${scoreRows}
-        </div>
-        <div class="panel-section">
-            <div class="panel-section-title">Neighborhood Analysis</div>
-            ${analysisRows}
-        </div>
-        <div class="panel-section">
-            <div class="panel-section-title">Nearby Outdoor Space</div>
-            ${parkHtml}${playHtml}
-        </div>
-        <div class="panel-section">
-            <div class="panel-section-title">${listings.length} Available Listing${listings.length !== 1 ? 's' : ''}</div>
-            ${listingCards}
-        </div>
-    `;
-
+function openPanel(title, address, subtitle, bodyHtml) {
+    document.getElementById('listings-panel-title').textContent = title;
+    document.getElementById('listings-panel-address').textContent = address;
+    document.getElementById('listings-panel-count').textContent = subtitle;
+    document.getElementById('listings-panel-body').innerHTML = bodyHtml;
     document.getElementById('listings-panel').classList.add('active');
+}
 
-    // Attach park/playground click listeners
-    const parkRowEl = document.getElementById('panel-park-row');
-    if (parkRowEl && property.nearest_park_name) {
-        parkRowEl.addEventListener('click', () =>
-            showParkOnMap(property.nearest_park_name, propLat, propLon));
+function attachParkListeners(property, propLat, propLon) {
+    const parkEl = document.getElementById('panel-park-row');
+    if (parkEl && property.nearest_park_name)
+        parkEl.addEventListener('click', () => showParkOnMap(property.nearest_park_name, propLat, propLon));
+    const playEl = document.getElementById('panel-play-row');
+    if (playEl && property.nearest_playground_name)
+        playEl.addEventListener('click', () => showParkOnMap(property.nearest_playground_name, propLat, propLon));
+}
+
+function showListingsPanel(property, listings) {
+    openPanel(
+        property.property_name || 'Property',
+        property.property_standardized_address || '',
+        `${listings.length} available listing${listings.length !== 1 ? 's' : ''}`,
+        buildScoreSectionHtml(scoreData[property.bg_geoid]) +
+        buildAnalysisSectionHtml(moodysAnalysis[property.bg_geoid]) +
+        buildParkSectionHtml(property) +
+        buildListingsSectionHtml(listings, moodysContacts)
+    );
+    attachParkListeners(property, property.location_geopoint_latitude, property.location_geopoint_longitude);
+}
+
+// --- CSV Upload ---
+
+let csvLayer = null;
+let csvRows = [];
+
+const csvIcon = L.divIcon({
+    className: '',
+    html: '<div style="width:18px;height:18px;background:#a855f7;border:3px solid #fff;border-radius:50%;box-shadow:0 1px 5px rgba(0,0,0,0.5);"></div>',
+    iconSize: [18, 18], iconAnchor: [9, 9], popupAnchor: [0, -11]
+});
+
+function parseCSV(text) {
+    const lines = text.trim().split(/\r?\n/);
+    if (lines.length < 2) return [];
+    const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+    const latIdx = headers.findIndex(h => h === 'lat' || h === 'latitude');
+    const lonIdx = headers.findIndex(h => h === 'lon' || h === 'longitude' || h === 'lng');
+    const addrIdx = headers.findIndex(h => h === 'address' || h === 'name');
+    if (latIdx === -1 || lonIdx === -1) return [];
+
+    return lines.slice(1).map(line => {
+        // Handle quoted fields
+        const cols = [];
+        let cur = '', inQ = false;
+        for (const ch of line) {
+            if (ch === '"') { inQ = !inQ; }
+            else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+            else { cur += ch; }
+        }
+        cols.push(cur.trim());
+        const lat = parseFloat(cols[latIdx]);
+        const lon = parseFloat(cols[lonIdx]);
+        if (isNaN(lat) || isNaN(lon)) return null;
+        return { address: addrIdx >= 0 ? cols[addrIdx] : '', lat, lon };
+    }).filter(Boolean);
+}
+
+async function findNearbyMoodysProperty(lat, lon) {
+    const d = 0.001;
+    const url = `${SUPABASE_URL}/rest/v1/moodys_property` +
+        `?location_geopoint_latitude=gte.${lat - d}&location_geopoint_latitude=lte.${lat + d}` +
+        `&location_geopoint_longitude=gte.${lon - d}&location_geopoint_longitude=lte.${lon + d}` +
+        `&select=property_source_key,property_name,property_standardized_address,` +
+        `location_geopoint_latitude,location_geopoint_longitude,bg_geoid,category,` +
+        `nearest_park_name,nearest_park_meters,nearest_playground_name,nearest_playground_meters&limit=10`;
+    const resp = await fetch(url, { headers: SUPABASE_HEADERS });
+    if (!resp.ok) return null;
+    const results = await resp.json();
+    if (!results.length) return null;
+    return results.reduce((best, p) => {
+        const d = Math.hypot(p.location_geopoint_latitude - lat, p.location_geopoint_longitude - lon);
+        const bd = Math.hypot(best.location_geopoint_latitude - lat, best.location_geopoint_longitude - lon);
+        return d < bd ? p : best;
+    });
+}
+
+async function getGeoidFromLatLon(lat, lon) {
+    const url = `https://geocoding.geo.census.gov/geocoder/geographies/coordinates?` +
+        `x=${lon}&y=${lat}&benchmark=Public_AR_Current&vintage=Current_Current&layers=Census+Block+Groups&format=json`;
+    try {
+        const data = await fetch(url).then(r => r.json());
+        const bgs = data?.result?.geographies?.['Census Block Groups'];
+        return bgs?.length ? bgs[0].GEOID : null;
+    } catch { return null; }
+}
+
+async function fetchBgAnalysisByGeoid(geoid) {
+    const url = `${SUPABASE_URL}/rest/v1/bg_analysis?geoid=eq.${geoid}` +
+        `&select=geoid,neighborhood_score,industrial_risk,area_quality,prestige&limit=1`;
+    const rows = await fetch(url, { headers: SUPABASE_HEADERS }).then(r => r.ok ? r.json() : []);
+    return rows[0] || null;
+}
+
+async function fetchHeatmapScoresByGeoid(geoid) {
+    const url = `${SUPABASE_URL}/rest/v1/heatmap_scores?geoid=eq.${geoid}` +
+        `&select=geoid,es_ws_avg,esplus_ws_avg,es_ws_weighted,esplus_ws_weighted&limit=1`;
+    const rows = await fetch(url, { headers: SUPABASE_HEADERS }).then(r => r.ok ? r.json() : []);
+    return rows[0] || null;
+}
+
+async function fetchMoodysListingsForProperty(propertySourceKey) {
+    const listingsUrl = `${SUPABASE_URL}/rest/v1/moodys_listings` +
+        `?property_source_key=eq.${propertySourceKey}` +
+        `&listed_space_availability_status=eq.AVAILABLE` +
+        `&select=property_source_key,listed_space_id,space_size_available,space_category,` +
+        `space_suite,listed_space_type,lease_asking_rent_general_price_average_amount,` +
+        `lease_asking_rent_general_price_period,lease_asking_rent_general_price_size&limit=200`;
+    const listingRows = await fetch(listingsUrl, { headers: SUPABASE_HEADERS }).then(r => r.ok ? r.json() : []);
+
+    const listingIds = listingRows.map(l => l.listed_space_id).filter(Boolean);
+    const contacts = {};
+    if (listingIds.length) {
+        const contactRows = await fetch(
+            `${SUPABASE_URL}/rest/v1/moodys_property_contacts` +
+            `?listed_space_id=in.(${listingIds.join(',')})` +
+            `&select=listed_space_id,contact_name,contact_role,contact_company_name&limit=500`,
+            { headers: SUPABASE_HEADERS }
+        ).then(r => r.ok ? r.json() : []);
+        contactRows.forEach(c => {
+            if (!contacts[c.listed_space_id]) contacts[c.listed_space_id] = [];
+            contacts[c.listed_space_id].push(c);
+        });
     }
-    const playRowEl = document.getElementById('panel-play-row');
-    if (playRowEl && property.nearest_playground_name) {
-        playRowEl.addEventListener('click', () =>
-            showParkOnMap(property.nearest_playground_name, propLat, propLon));
+
+    const listings = {};
+    listingRows.forEach(l => {
+        if (!listings[l.property_source_key]) listings[l.property_source_key] = [];
+        listings[l.property_source_key].push(l);
+    });
+    return { listings, contacts };
+}
+
+async function processCsvUpload(file) {
+    const statusEl = document.getElementById('csv-status');
+    statusEl.textContent = 'Parsing...';
+    const text = await file.text();
+    const rawRows = parseCSV(text);
+    if (!rawRows.length) {
+        statusEl.textContent = 'No valid rows. CSV needs lat and lon columns.';
+        return;
     }
+    statusEl.textContent = `Processing ${rawRows.length} address${rawRows.length !== 1 ? 'es' : ''}…`;
+
+    const processed = await Promise.all(rawRows.map(async row => {
+        const moodysProp = await findNearbyMoodysProperty(row.lat, row.lon);
+        if (moodysProp) {
+            const [{ listings, contacts }, bgAnalysis] = await Promise.all([
+                fetchMoodysListingsForProperty(moodysProp.property_source_key),
+                moodysProp.bg_geoid ? fetchBgAnalysisByGeoid(moodysProp.bg_geoid) : null,
+            ]);
+            const scores = scoreData[moodysProp.bg_geoid] ||
+                (moodysProp.bg_geoid ? await fetchHeatmapScoresByGeoid(moodysProp.bg_geoid) : null);
+            return { type: 'moodys', lat: row.lat, lon: row.lon, address: row.address,
+                property: moodysProp, listings, contacts, bgAnalysis, scores };
+        } else {
+            const geoid = await getGeoidFromLatLon(row.lat, row.lon);
+            const [bgAnalysis, scores] = geoid
+                ? await Promise.all([fetchBgAnalysisByGeoid(geoid), fetchHeatmapScoresByGeoid(geoid)])
+                : [null, null];
+            return { type: 'custom', lat: row.lat, lon: row.lon, address: row.address, geoid, bgAnalysis, scores };
+        }
+    }));
+
+    csvRows = processed;
+    const moodysCount = csvRows.filter(r => r.type === 'moodys').length;
+    statusEl.textContent = `${csvRows.length} loaded · ${moodysCount} matched Moody's`;
+    document.getElementById('csv-clear-btn').style.display = '';
+    displayCsvMarkers();
+}
+
+function displayCsvMarkers() {
+    if (csvLayer) { map.removeLayer(csvLayer); csvLayer = null; }
+    if (!csvRows.length) return;
+    csvLayer = L.layerGroup();
+    csvRows.forEach(row => {
+        const icon = row.type === 'moodys' ? moodysIcon : csvIcon;
+        const marker = L.marker([row.lat, row.lon], { icon });
+        marker.on('click', () => {
+            if (row.type === 'moodys') {
+                const propListings = row.listings[row.property.property_source_key] || [];
+                openPanel(
+                    row.property.property_name || row.address || 'Property',
+                    row.property.property_standardized_address || '',
+                    `${propListings.length} available listing${propListings.length !== 1 ? 's' : ''}`,
+                    buildScoreSectionHtml(row.scores) +
+                    buildAnalysisSectionHtml(row.bgAnalysis) +
+                    buildParkSectionHtml(row.property) +
+                    buildListingsSectionHtml(propListings, row.contacts)
+                );
+                attachParkListeners(row.property,
+                    row.property.location_geopoint_latitude, row.property.location_geopoint_longitude);
+            } else {
+                openPanel(
+                    row.address || 'CSV Location',
+                    `${row.lat.toFixed(5)}, ${row.lon.toFixed(5)}`,
+                    row.geoid ? `Block group ${row.geoid}` : 'Block group not found',
+                    buildScoreSectionHtml(row.scores) +
+                    buildAnalysisSectionHtml(row.bgAnalysis)
+                );
+            }
+        });
+        csvLayer.addLayer(marker);
+    });
+    map.addLayer(csvLayer);
+}
+
+function clearCsvPins() {
+    if (csvLayer) { map.removeLayer(csvLayer); csvLayer = null; }
+    csvRows = [];
+    document.getElementById('csv-status').textContent = '';
+    document.getElementById('csv-clear-btn').style.display = 'none';
+    document.getElementById('csv-file-input').value = '';
 }
 
 function closeListingsPanel() {
@@ -1194,6 +1383,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('moodys-min-sqft').addEventListener('input', displayMoodysMarkers);
     document.getElementById('moodys-max-sqft').addEventListener('input', displayMoodysMarkers);
     document.getElementById('listings-panel-close').addEventListener('click', closeListingsPanel);
+
+    // CSV upload
+    document.getElementById('csv-file-input').addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (file) processCsvUpload(file);
+    });
+    document.getElementById('csv-clear-btn').addEventListener('click', clearCsvPins);
 
     // Opacity slider
     document.getElementById('opacity-slider').addEventListener('input', (e) => {
