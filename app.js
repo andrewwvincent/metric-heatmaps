@@ -432,6 +432,99 @@ async function loadSelectedCounties() {
     }
 }
 
+// Load counties from a CSV pin set (multi-state allowed).
+// Stores 5-char state+county prefixes in loadedCounties; currentStateCode = ''
+// so existing filter logic ('' + '12086' = '12086') continues to work.
+async function loadCountiesForCsv(processedRows) {
+    // Collect unique 5-char state+county prefixes from pin GEOIDs
+    const prefixSet = new Set();
+    for (const row of processedRows) {
+        const geoid = row.type === 'moodys' ? row.property?.bg_geoid : row.geoid;
+        if (geoid && geoid.length >= 5) prefixSet.add(geoid.substring(0, 5));
+    }
+    if (!prefixSet.size) return;
+
+    // Clear existing map state
+    if (currentLayer) map.removeLayer(currentLayer);
+    clearCountyBoundaries();
+    scoreData = {};
+    loadedCounties = [];
+    currentStateCode = '';
+    isMultiCountyMode = true;
+
+    const progressDiv = document.getElementById('loading-progress');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-text');
+    progressDiv.style.display = 'block';
+    progressText.textContent = 'Fetching scores...';
+
+    // Fetch scores for every unique state in parallel
+    const uniqueStates = [...new Set([...prefixSet].map(p => p.substring(0, 2)))];
+    await Promise.all(uniqueStates.map(async stCode => {
+        const stScores = await fetchStateScores(stCode);
+        Object.assign(scoreData, stScores);
+    }));
+
+    // Load geometry county by county (batched)
+    const allPrefixes = [...prefixSet];
+    let allFeatures = [];
+    let loaded = 0;
+    const batchSize = 8;
+
+    for (let i = 0; i < allPrefixes.length; i += batchSize) {
+        const batch = allPrefixes.slice(i, i + batchSize);
+        const results = await Promise.all(batch.map(async prefix => {
+            const stCode = prefix.substring(0, 2);
+            const cCode = prefix.substring(2, 5);
+            const county = availableCounties.find(c => c.stateCode === stCode && c.countyCode === cCode);
+            if (!county) return null;
+            try {
+                const geoResp = await fetch(`data/${county.geojsonFile}`);
+                if (!geoResp.ok) return null;
+                const geoData = await geoResp.json();
+                let features;
+                if (geoData.type === 'Topology') {
+                    const objectName = Object.keys(geoData.objects)[0];
+                    features = topojson.feature(geoData, geoData.objects[objectName]).features || [];
+                    try {
+                        const merged = topojson.merge(geoData, geoData.objects[objectName].geometries);
+                        const bndLayer = L.geoJSON(
+                            { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: merged }] },
+                            { style: { color: '#1e40af', weight: 2, fill: false, opacity: countyBoundariesVisible ? 0.8 : 0 } }
+                        ).addTo(map);
+                        countyBoundaryLayers.push(bndLayer);
+                    } catch(e) {}
+                } else {
+                    features = geoData.features || [];
+                }
+                loadedCounties.push(prefix); // 5-char prefix
+                return features;
+            } catch(e) { console.error(`Error loading county ${prefix}:`, e); return null; }
+        }));
+        results.forEach(f => { if (f) allFeatures = allFeatures.concat(f); });
+        loaded += batch.length;
+        progressBar.style.width = `${Math.round(loaded / allPrefixes.length * 100)}%`;
+        progressText.textContent = `Loading ${loaded} of ${allPrefixes.length} counties...`;
+    }
+
+    const geojson = { type: 'FeatureCollection', features: allFeatures };
+    currentLayer = L.geoJSON(geojson, {
+        style: getFeatureStyle,
+        onEachFeature: (feature, layer) => { layer.on('click', () => showBlockInfo(feature)); }
+    }).addTo(map);
+
+    if (currentLayer.getLayers().length > 0) map.fitBounds(currentLayer.getBounds());
+    updateLegend();
+    updateURL();
+
+    progressDiv.style.display = 'none';
+    const status = document.getElementById('data-status');
+    status.style.display = 'block';
+    status.textContent = `Loaded ${loadedCounties.length} counties (${Object.keys(scoreData).length} block groups)`;
+    status.style.backgroundColor = '#dcfce7';
+    status.style.color = '#166534';
+}
+
 function showBlockInfo(feature) {
     const geoid = feature.properties.GEOID;
     const data = scoreData[geoid];
@@ -1014,6 +1107,12 @@ async function processCsvUpload(file) {
     const moodysCount = csvRows.filter(r => r.type === 'moodys').length;
     statusEl.textContent = `${csvRows.length} loaded · ${moodysCount} matched Moody's`;
     document.getElementById('csv-clear-btn').style.display = '';
+
+    // Load counties for all pins (clears any existing county selection)
+    statusEl.textContent += ' · Loading counties…';
+    await loadCountiesForCsv(csvRows);
+    statusEl.textContent = `${csvRows.length} loaded · ${moodysCount} matched Moody's`;
+
     displayCsvMarkers();
 }
 
