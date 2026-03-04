@@ -30,6 +30,7 @@ let moodysLayer = null;
 let moodysProperties = [];
 let moodysListings = {};
 let moodysContacts = {};
+let moodysAnalysis = {};
 let moodysFetchedKey = null;
 
 const STATE_NAMES = {
@@ -410,10 +411,11 @@ async function loadSelectedCounties() {
     if (moodysVisible) {
         const fetchKey = currentStateCode + [...loadedCounties].sort().join(',');
         if (moodysFetchedKey !== fetchKey) {
-            const { properties, listings, contacts } = await fetchMoodysData(currentStateCode, loadedCounties);
+            const { properties, listings, contacts, analysis } = await fetchMoodysData(currentStateCode, loadedCounties);
             moodysProperties = properties;
             moodysListings = listings;
             moodysContacts = contacts;
+            moodysAnalysis = analysis;
             moodysFetchedKey = fetchKey;
         }
         displayMoodysMarkers();
@@ -659,7 +661,28 @@ async function fetchMoodysData(stateCode, countyCodes) {
     }
     await Promise.all(contactPromises);
 
-    return { properties, listings, contacts };
+    // Batch-fetch bg_analysis rows for all unique bg_geoids
+    if (btn) btn.textContent = 'Loading neighborhood scores...';
+    const analysis = {};
+    const geoids = [...new Set(properties.map(p => p.bg_geoid).filter(Boolean))];
+    const analysisPromises = [];
+    for (let i = 0; i < geoids.length; i += batchSize) {
+        const batch = geoids.slice(i, i + batchSize);
+        analysisPromises.push(
+            fetch(
+                `${SUPABASE_URL}/rest/v1/bg_analysis` +
+                `?geoid=in.(${batch.join(',')})` +
+                `&select=geoid,neighborhood_score,industrial_risk,area_quality,prestige` +
+                `&limit=1000`,
+                { headers: SUPABASE_HEADERS }
+            ).then(r => r.ok ? r.json() : []).then(rows => {
+                rows.forEach(row => { analysis[row.geoid] = row; });
+            })
+        );
+    }
+    await Promise.all(analysisPromises);
+
+    return { properties, listings, contacts, analysis };
 }
 
 function displayMoodysMarkers() {
@@ -707,10 +730,11 @@ async function toggleMoodys() {
         if (moodysFetchedKey !== fetchKey) {
             btn.textContent = 'Loading properties...';
             btn.disabled = true;
-            const { properties, listings, contacts } = await fetchMoodysData(currentStateCode, loadedCounties);
+            const { properties, listings, contacts, analysis } = await fetchMoodysData(currentStateCode, loadedCounties);
             moodysProperties = properties;
             moodysListings = listings;
             moodysContacts = contacts;
+            moodysAnalysis = analysis;
             moodysFetchedKey = fetchKey;
             btn.disabled = false;
             btn.textContent = "Hide Moody's Listings";
@@ -741,10 +765,21 @@ function showListingsPanel(property, listings) {
         return `<div class="score-row"><span class="score-label">${label}</span>${badge}</div>`;
     }).join('');
 
-    const neighborhoodScoreRow = `<div class="score-row">
-        <span class="score-label">Neighborhood Score</span>
-        <span class="score-badge score-na">N/A</span>
-    </div>`;
+    // --- bg_analysis fields ---
+    const bgAnalysis = moodysAnalysis[property.bg_geoid];
+    const analysisFields = [
+        { key: 'neighborhood_score', label: 'Neighborhood Score' },
+        { key: 'industrial_risk',    label: 'Industrial Risk' },
+        { key: 'area_quality',       label: 'Area Quality' },
+        { key: 'prestige',           label: 'Prestige' },
+    ];
+    const analysisRows = analysisFields.map(({ key, label }) => {
+        const val = bgAnalysis ? bgAnalysis[key] : null;
+        const badge = val != null
+            ? `<span class="score-badge" style="background:${getScoreColor(val) || '#6b7280'}">${typeof val === 'number' ? val.toFixed(2) : val}</span>`
+            : `<span class="score-badge score-na">N/A</span>`;
+        return `<div class="score-row"><span class="score-label">${label}</span>${badge}</div>`;
+    }).join('');
 
     // --- Park section ---
     const metersToMin = m => m != null ? `${Math.round(m / 80)} min walk` : null;
@@ -789,7 +824,10 @@ function showListingsPanel(property, listings) {
         <div class="panel-section">
             <div class="panel-section-title">Demographics Scores</div>
             ${scoreRows}
-            ${neighborhoodScoreRow}
+        </div>
+        <div class="panel-section">
+            <div class="panel-section-title">Neighborhood Analysis</div>
+            ${analysisRows}
         </div>
         <div class="panel-section">
             <div class="panel-section-title">Nearby Outdoor Space</div>
