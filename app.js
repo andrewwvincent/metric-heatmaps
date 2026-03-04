@@ -741,6 +741,11 @@ function showListingsPanel(property, listings) {
         return `<div class="score-row"><span class="score-label">${label}</span>${badge}</div>`;
     }).join('');
 
+    const neighborhoodScoreRow = `<div class="score-row">
+        <span class="score-label">Neighborhood Score</span>
+        <span class="score-badge score-na">N/A</span>
+    </div>`;
+
     // --- Park section ---
     const metersToMin = m => m != null ? `${Math.round(m / 80)} min walk` : null;
     const parkLine = property.nearest_park_name
@@ -784,6 +789,7 @@ function showListingsPanel(property, listings) {
         <div class="panel-section">
             <div class="panel-section-title">Demographics Scores</div>
             ${scoreRows}
+            ${neighborhoodScoreRow}
         </div>
         <div class="panel-section">
             <div class="panel-section-title">Nearby Outdoor Space</div>
