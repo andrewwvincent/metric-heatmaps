@@ -25,6 +25,12 @@ let schoolClosuresVisible = false;
 let schoolClosuresData = [];
 let schoolClosuresFetchedState = null;
 
+let moodysVisible = false;
+let moodysLayer = null;
+let moodysProperties = [];
+let moodysListings = {};
+let moodysFetchedKey = null;
+
 const STATE_NAMES = {
     '01': 'Alabama', '02': 'Alaska', '04': 'Arizona', '05': 'Arkansas', '06': 'California',
     '08': 'Colorado', '09': 'Connecticut', '10': 'Delaware', '11': 'District of Columbia',
@@ -398,6 +404,18 @@ async function loadSelectedCounties() {
         }
         displaySchoolClosures();
     }
+
+    // Refresh Moody's overlay if visible
+    if (moodysVisible) {
+        const fetchKey = currentStateCode + [...loadedCounties].sort().join(',');
+        if (moodysFetchedKey !== fetchKey) {
+            const { properties, listings } = await fetchMoodysData(currentStateCode, loadedCounties);
+            moodysProperties = properties;
+            moodysListings = listings;
+            moodysFetchedKey = fetchKey;
+        }
+        displayMoodysMarkers();
+    }
 }
 
 function showBlockInfo(feature) {
@@ -547,6 +565,162 @@ async function toggleSchoolClosures() {
     }
 
     displaySchoolClosures();
+}
+
+// --- Moody's Listings ---
+const moodysIcon = L.divIcon({
+    className: '',
+    html: '<div style="width:10px;height:10px;background:#0ea5e9;border:2px solid #fff;border-radius:2px;box-shadow:0 1px 3px rgba(0,0,0,0.4);"></div>',
+    iconSize: [10, 10],
+    iconAnchor: [5, 5],
+    popupAnchor: [0, -7]
+});
+
+async function fetchMoodysData(stateCode, countyCodes) {
+    const btn = document.getElementById('toggle-moodys-btn');
+
+    // Build OR filter: bg_geoid.like.12086%25,bg_geoid.like.12011%25
+    const orParts = countyCodes.map(cc => `bg_geoid.like.${stateCode + cc}%25`).join(',');
+
+    // Fetch properties with pagination
+    const properties = [];
+    const pageSize = 2000;
+    let offset = 0;
+    while (true) {
+        const url = `${SUPABASE_URL}/rest/v1/moodys_property` +
+            `?or=(${orParts})` +
+            `&select=property_source_key,property_name,property_standardized_address,` +
+            `location_geopoint_latitude,location_geopoint_longitude,bg_geoid,category` +
+            `&limit=${pageSize}&offset=${offset}`;
+        const resp = await fetch(url, { headers: SUPABASE_HEADERS });
+        if (!resp.ok) { console.error('Moodys properties error:', resp.status); break; }
+        const rows = await resp.json();
+        properties.push(...rows);
+        if (rows.length < pageSize) break;
+        offset += pageSize;
+    }
+
+    if (btn) btn.textContent = `Loading listings for ${properties.length} properties...`;
+
+    // Batch-fetch AVAILABLE listings for all properties in parallel (100 keys per batch)
+    const listings = {};
+    const keys = properties.map(p => p.property_source_key);
+    const batchSize = 100;
+    const fetchPromises = [];
+
+    for (let i = 0; i < keys.length; i += batchSize) {
+        const batch = keys.slice(i, i + batchSize);
+        fetchPromises.push(
+            fetch(
+                `${SUPABASE_URL}/rest/v1/moodys_listings` +
+                `?property_source_key=in.(${batch.join(',')})` +
+                `&listed_space_availability_status=eq.AVAILABLE` +
+                `&select=property_source_key,space_size_available,space_category,` +
+                `space_suite,listed_space_type,lease_asking_rent_general_price_average_amount,` +
+                `lease_asking_rent_general_price_period,lease_asking_rent_general_price_size` +
+                `&limit=1000`,
+                { headers: SUPABASE_HEADERS }
+            ).then(r => r.ok ? r.json() : []).then(rows => {
+                rows.forEach(row => {
+                    if (!listings[row.property_source_key]) listings[row.property_source_key] = [];
+                    listings[row.property_source_key].push(row);
+                });
+            })
+        );
+    }
+    await Promise.all(fetchPromises);
+
+    return { properties, listings };
+}
+
+function displayMoodysMarkers() {
+    if (moodysLayer) { map.removeLayer(moodysLayer); moodysLayer = null; }
+    if (!moodysVisible || moodysProperties.length === 0 || loadedCounties.length === 0) return;
+
+    const loadedPrefixes = new Set(loadedCounties.map(cc => currentStateCode + cc));
+    const minVal = document.getElementById('moodys-min-sqft').value;
+    const maxVal = document.getElementById('moodys-max-sqft').value;
+    const minSqFt = minVal !== '' ? parseFloat(minVal) : null;
+    const maxSqFt = maxVal !== '' ? parseFloat(maxVal) : null;
+
+    const clusterGroup = L.markerClusterGroup({ maxClusterRadius: 40, disableClusteringAtZoom: 16 });
+
+    moodysProperties.forEach(prop => {
+        if (!prop.bg_geoid || !loadedPrefixes.has(prop.bg_geoid.substring(0, 5))) return;
+        const lat = prop.location_geopoint_latitude;
+        const lon = prop.location_geopoint_longitude;
+        if (!lat || !lon) return;
+
+        const listings = (moodysListings[prop.property_source_key] || []).filter(l => {
+            const sz = l.space_size_available;
+            if (minSqFt !== null && (sz == null || sz < minSqFt)) return false;
+            if (maxSqFt !== null && (sz == null || sz > maxSqFt)) return false;
+            return true;
+        });
+        if (listings.length === 0) return;
+
+        const marker = L.marker([lat, lon], { icon: moodysIcon });
+        marker.on('click', () => showListingsPanel(prop, listings));
+        clusterGroup.addLayer(marker);
+    });
+
+    moodysLayer = clusterGroup;
+    map.addLayer(moodysLayer);
+}
+
+async function toggleMoodys() {
+    moodysVisible = !moodysVisible;
+    const btn = document.getElementById('toggle-moodys-btn');
+    btn.textContent = moodysVisible ? "Hide Moody's Listings" : "Show Moody's Listings";
+
+    if (moodysVisible && currentStateCode && loadedCounties.length > 0) {
+        const fetchKey = currentStateCode + [...loadedCounties].sort().join(',');
+        if (moodysFetchedKey !== fetchKey) {
+            btn.textContent = 'Loading properties...';
+            btn.disabled = true;
+            const { properties, listings } = await fetchMoodysData(currentStateCode, loadedCounties);
+            moodysProperties = properties;
+            moodysListings = listings;
+            moodysFetchedKey = fetchKey;
+            btn.disabled = false;
+            btn.textContent = "Hide Moody's Listings";
+        }
+    }
+
+    displayMoodysMarkers();
+}
+
+function showListingsPanel(property, listings) {
+    document.getElementById('listings-panel-title').textContent = property.property_name || 'Property';
+    document.getElementById('listings-panel-address').textContent = property.property_standardized_address || '';
+    document.getElementById('listings-panel-count').textContent =
+        `${listings.length} available listing${listings.length !== 1 ? 's' : ''}`;
+
+    const body = document.getElementById('listings-panel-body');
+    body.innerHTML = listings.map(l => {
+        const sqft = l.space_size_available != null
+            ? `${Number(l.space_size_available).toLocaleString()} sq ft`
+            : 'Size N/A';
+        const rent = l.lease_asking_rent_general_price_average_amount != null
+            ? `$${l.lease_asking_rent_general_price_average_amount} / SF / ${l.lease_asking_rent_general_price_period || 'yr'}`
+            : null;
+
+        return `<div class="listing-card">
+            <div class="listing-card-header">
+                <span class="listing-type-badge">${l.listed_space_type || 'LEASE'}</span>
+                ${l.space_suite ? `<span class="listing-suite">Suite ${l.space_suite}</span>` : ''}
+            </div>
+            ${l.space_category ? `<p class="listing-meta">${l.space_category}</p>` : ''}
+            <p class="listing-size">${sqft}</p>
+            ${rent ? `<p class="listing-rent">${rent}</p>` : ''}
+        </div>`;
+    }).join('');
+
+    document.getElementById('listings-panel').classList.add('active');
+}
+
+function closeListingsPanel() {
+    document.getElementById('listings-panel').classList.remove('active');
 }
 
 // --- County Export Screenshot ---
@@ -828,6 +1002,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // School closures toggle
     document.getElementById('toggle-school-closures-btn').addEventListener('click', toggleSchoolClosures);
+
+    // Moody's listings toggle + sqft filter
+    document.getElementById('toggle-moodys-btn').addEventListener('click', toggleMoodys);
+    document.getElementById('moodys-min-sqft').addEventListener('input', displayMoodysMarkers);
+    document.getElementById('moodys-max-sqft').addEventListener('input', displayMoodysMarkers);
+    document.getElementById('listings-panel-close').addEventListener('click', closeListingsPanel);
 
     // Opacity slider
     document.getElementById('opacity-slider').addEventListener('input', (e) => {
