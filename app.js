@@ -495,7 +495,7 @@ const schoolClosureIcon = L.divIcon({
 
 async function fetchSchoolClosures(stateCode) {
     const url = `${SUPABASE_URL}/rest/v1/school_closure_schools` +
-        `?block_group_geoid=like.${stateCode}%` +
+        `?block_group_geoid=like.${stateCode}%25` +
         `&select=school_name,address,district_name,status,closure_date,lat,lon,block_group_geoid`;
     const resp = await fetch(url, { headers: SUPABASE_HEADERS });
     if (!resp.ok) { console.error('School closures fetch error:', resp.status); return []; }
